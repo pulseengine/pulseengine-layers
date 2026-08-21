@@ -1,0 +1,83 @@
+name: Deposit layer
+
+# Assemble and publish one layer of the `pulseengine` realm.
+#
+# The assembler and the varve binary come from a varve RELEASE, pinned in
+# layer.toml. Nothing is vendored here: the assembler is system-tested in
+# varve (REQ-SYSTEST-002) and that testing is worth nothing to a realm running
+# a copy of it (REQ-PEL-ASSEMBLER-001).
+
+on:
+  workflow_dispatch:
+    inputs:
+      layer:
+        description: "Layer identifier (YYYY.MM.P), e.g. 2026.08.4"
+        required: true
+        type: string
+      counter:
+        description: "Monotonic per-line release counter"
+        required: true
+        type: string
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  deposit:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Fetch the pinned varve release (binary + assembler)
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          VER="$(python3 -c "import tomllib;print(tomllib.load(open('layer.toml','rb'))['varve']['version'])")"
+          echo "varve $VER (pinned in layer.toml)"
+          mkdir -p .varve/bin
+          gh release download "$VER" --repo pulseengine/varve \
+            -p 'varve-*-x86_64-unknown-linux-gnu.tar.gz' \
+            -p 'SHA256SUMS.txt' -p 'SHA256SUMS.txt.cosign.bundle' -D .varve
+          # Verify before extracting. The whole point of this repo is that a
+          # layer's contents are vouched for; the tool that vouches for them
+          # gets the same treatment.
+          cd .varve && sha256sum --ignore-missing -c SHA256SUMS.txt
+          cd - >/dev/null
+
+      - name: Install cosign
+        uses: sigstore/cosign-installer@d58896d6a1865668819e1d91763c7751a165e159 # v3.9.2
+
+      - name: Verify the varve release signature
+        run: |
+          set -euo pipefail
+          cd .varve
+          cosign verify-blob \
+            --certificate-identity-regexp 'https://github.com/pulseengine/varve/.github/workflows/release.yml@.*' \
+            --certificate-oidc-issuer https://token.actions.githubusercontent.com \
+            --bundle SHA256SUMS.txt.cosign.bundle SHA256SUMS.txt
+          tar xzf varve-*-x86_64-unknown-linux-gnu.tar.gz
+          find . -name varve -type f -exec cp {} bin/varve \;
+          chmod +x bin/varve
+          ./bin/varve --version
+
+      - name: Assemble the deposit spec from layer.toml
+        env:
+          GH_TOKEN: ${{ github.token }}
+          LAYER: ${{ inputs.layer }}
+          COUNTER: ${{ inputs.counter }}
+        run: |
+          set -euo pipefail
+          # TODO(handover): the assembler currently reads its tool list from
+          # env vars, not from layer.toml. The next agent's first task is the
+          # adapter — see README "Handover".
+          echo "::error::layer.toml -> deposit-spec adapter not yet implemented"
+          exit 1
+
+      - name: Deposit and publish
+        if: false # unreachable until the adapter above exists
+        env:
+          VARVE_ROLLING_KEY: ${{ secrets.VARVE_ROLLING_KEY }}
+        run: echo "placeholder"

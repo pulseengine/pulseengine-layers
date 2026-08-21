@@ -1,0 +1,19 @@
+# Same schema set as pulseengine/varve, deliberately. A layers repo makes
+# TRUST claims — which tools a realm vouches for, and on what evidence — so it
+# needs the same vocabulary as the tool that consumes them. A narrower schema
+# here would mean claims that cannot be linked to varve's requirements.
+project:
+  name: pulseengine-layers
+  version: "0.1.0"
+  schemas:
+    - common
+    - dev
+    - stpa
+    - stpa-sec
+    - aspice
+    - supply-chain
+    - research
+
+sources:
+  - path: artifacts
+    format: generic-yaml

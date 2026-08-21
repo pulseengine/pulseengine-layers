@@ -1,0 +1,83 @@
+# What the `pulseengine` realm carries.
+#
+# THIS FILE IS THE LAYER. Bumping a version here is the whole change — no
+# workflow edit, no varve commit (REQ-PEL-MANIFEST-001).
+#
+# `varve` is obtained from a release, along with the assembler that reads
+# this file. Neither is vendored here (REQ-PEL-ASSEMBLER-001).
+
+[varve]
+# The varve release whose binary AND assembler build this layer. Pinned, so a
+# layer can be traced to the assembler that produced it.
+version = "v0.28.0"
+
+[realm]
+name    = "pulseengine"
+channel = "rolling"
+# The registry the deposit is pushed to. The trust root is NOT here — it is
+# the public half consumers already hold; this repo holds the secret half as
+# a secret, never as a file (REQ-PEL-CUSTODY-001).
+registry = "oci://ghcr.io/pulseengine/varve/layers"
+
+# ── tools ───────────────────────────────────────────────────────────────────
+# `repo` is optional and defaults to `pulseengine/<name>`. Naming it lets a
+# non-PulseEngine upstream be expressed, which is what varve's second
+# ingestion mechanism exists for (varve REQ-INGEST-001).
+#
+# `binary` is optional and defaults to <name>; kiln ships its CLI as `kilnd`.
+
+[[tool]]
+name    = "rivet"
+version = "v0.34.0"
+
+[[tool]]
+name    = "spar"
+version = "v0.40.0"
+
+[[tool]]
+name    = "synth"
+version = "v0.58.0"
+
+[[tool]]
+name    = "witness"
+version = "v0.43.0"
+
+[[tool]]
+name    = "ordeal"
+version = "v0.19.0"
+
+[[tool]]
+name    = "loom"
+version = "v1.4.0"
+
+[[tool]]
+name    = "meld"
+version = "v0.52.0"
+
+[[tool]]
+name    = "kiln"
+version = "v0.4.4"
+binary  = "kilnd"
+
+# wsc ships as raw per-platform binaries from sigil, not a tarball.
+[[tool]]
+name    = "wsc"
+repo    = "pulseengine/sigil"
+version = "v0.11.0"
+layout  = "raw-per-platform"
+
+# ── VS Code extensions (kind = "vsix") ──────────────────────────────────────
+# `%V` is the bare version; `%P` the VS Code platform tag where the extension
+# is per-platform. An entry with no %P is one portable package.
+
+[[vsix]]
+name    = "rivet-sdlc"
+repo    = "pulseengine/rivet"
+version = "v0.34.0"
+asset   = "rivet-sdlc-%V.vsix"
+
+[[vsix]]
+name    = "spar-aadl"
+repo    = "pulseengine/spar"
+version = "v0.40.0"
+asset   = "spar-aadl-%P-%V.vsix"

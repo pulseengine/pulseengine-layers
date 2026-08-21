@@ -1,0 +1,70 @@
+# Layer assembly for the pulseengine realm.
+#
+# This repo holds WHAT the realm vouches for. varve holds HOW — the assembler
+# is consumed from a varve release, never copied here, because a copy per
+# realm is a copy that drifts (varve REQ-LAYERREPO-001 clause 2).
+
+artifacts:
+  - id: REQ-PEL-MANIFEST-001
+    type: requirement
+    title: The realm's contents are a reviewed file, not a workflow edit
+    status: draft
+    release: v0.1.0
+    description: >
+      Before this repo existed, the pulseengine realm's tool list lived in an
+      `env:` block inside `deposit-layer.yml` in the varve repository. Bumping
+      a tool version was therefore a commit to the tool that installs tools,
+      and varve's own release cadence was coupled to every upstream bump.
+      .
+      Clauses: (1) The tools a layer carries shall be declared in a manifest
+      file in this repository, reviewable as a diff. (2) A change to that
+      manifest shall be the ONLY thing that changes what a layer contains —
+      no workflow edit shall be required to bump a version. (3) The manifest
+      shall record, per tool, which upstream repository provides it, so a
+      non-PulseEngine upstream is expressible (varve REQ-INGEST-001). (4) A
+      tool whose upstream cannot be verified shall be refused by the
+      assembler, not silently omitted here.
+
+  - id: REQ-PEL-CUSTODY-001
+    type: requirement
+    title: This realm's signing key lives here, and nowhere else
+    status: draft
+    release: v0.1.0
+    description: >
+      varve REQ-LAYERREPO-001 clause 5: varve's own repository shall stop
+      carrying any realm's signing secret once the migration completes. The
+      point is custody separation — `varve docs root-ceremony` argues for it
+      in the same breath as split custody, and a realm root sitting in the
+      settings of a repository that does not need it is an avoidable
+      exposure.
+      .
+      Clauses: (1) The realm root secret shall be provisioned in THIS
+      repository and used only by this repository's deposit workflow. (2) It
+      shall reach varve through a file descriptor, never a workspace file —
+      `varve docs ci` names the two patterns. (3) It shall be removed from
+      pulseengine/varve once this repo has published a layer successfully,
+      and not before: a migration that removes the old path before the new
+      one works leaves the realm unable to publish at all. (4) This repo
+      shall hold exactly ONE realm's key. A second realm gets a second
+      repository — two roots in one settings page is the custody failure this
+      split exists to prevent.
+
+  - id: REQ-PEL-ASSEMBLER-001
+    type: requirement
+    title: The assembler is consumed from varve, never copied
+    status: draft
+    release: v0.1.0
+    description: >
+      varve REQ-LAYERREPO-001 clause 2. The layer assembler
+      (`tools/build-deposit-spec.sh`) is system-tested in varve by
+      REQ-SYSTEST-002, against recorded release metadata, with its own
+      mutation proving the gate goes red. That testing is worth nothing to a
+      realm running a COPY of it.
+      .
+      Clauses: (1) This repo shall obtain the assembler and the varve binary
+      from a released varve artifact, pinned by version. (2) It shall NOT
+      vendor or fork the assembler; a local modification is a signal that
+      varve needs a change, not that this repo needs a patch. (3) The varve
+      version in use shall be visible in the workflow and in the layer's
+      provenance, so a layer can be traced to the assembler that built it.
+      (4) No varve source checkout shall be required.
