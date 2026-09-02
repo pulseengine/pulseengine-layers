@@ -9,7 +9,7 @@
 [varve]
 # The varve release whose binary AND assembler build this layer. Pinned, so a
 # layer can be traced to the assembler that produced it.
-version = "v0.28.0"
+version = "v0.30.0"
 
 [realm]
 name    = "pulseengine"
@@ -28,7 +28,7 @@ registry = "oci://ghcr.io/pulseengine/varve/layers"
 
 [[tool]]
 name    = "rivet"
-version = "v0.34.0"
+version = "v0.35.0"
 
 [[tool]]
 name    = "spar"
@@ -36,7 +36,7 @@ version = "v0.40.0"
 
 [[tool]]
 name    = "synth"
-version = "v0.58.0"
+version = "v0.60.0"
 
 [[tool]]
 name    = "witness"
@@ -48,7 +48,7 @@ version = "v0.19.0"
 
 [[tool]]
 name    = "loom"
-version = "v1.4.0"
+version = "v1.4.1"
 
 [[tool]]
 name    = "meld"
@@ -65,6 +65,17 @@ name    = "wsc"
 repo    = "pulseengine/sigil"
 version = "v0.11.0"
 layout  = "raw-per-platform"
+# sigil names these `wsc-<os>-<arch>` -- OS first. Neither %T
+# (aarch64-apple-darwin) nor %U (aarch64-macos) produces that order, so the
+# names are given explicitly rather than inferred. The shell assembler only
+# ever worked here because it carried a hardcoded `case` for wsc; naming the
+# files removes that special case and makes the manifest the only place the
+# layer's contents are defined.
+[tool.asset-for]
+"aarch64-apple-darwin"      = "wsc-macos-aarch64"
+"x86_64-apple-darwin"       = "wsc-macos-x86_64"
+"aarch64-unknown-linux-gnu" = "wsc-linux-aarch64"
+"x86_64-unknown-linux-gnu"  = "wsc-linux-x86_64"
 
 # ── VS Code extensions (kind = "vsix") ──────────────────────────────────────
 # `%V` is the bare version; `%P` the VS Code platform tag where the extension
@@ -73,7 +84,7 @@ layout  = "raw-per-platform"
 [[vsix]]
 name    = "rivet-sdlc"
 repo    = "pulseengine/rivet"
-version = "v0.34.0"
+version = "v0.35.0"
 asset   = "rivet-sdlc-%V.vsix"
 
 [[vsix]]
