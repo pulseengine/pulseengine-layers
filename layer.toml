@@ -9,7 +9,12 @@
 [varve]
 # The varve release whose binary AND assembler build this layer. Pinned, so a
 # layer can be traced to the assembler that produced it.
-version = "v0.30.0"
+#
+# v0.32.0, not v0.30.0: `varve-producer` — the assembler that reads THIS file —
+# does not exist before v0.31.0. Pinned at v0.30.0 the deposit downloaded a
+# varve binary, found no assembler beside it, and could not have run whatever
+# the adapter step said.
+version = "v0.32.0"
 
 [realm]
 name    = "pulseengine"
@@ -25,6 +30,11 @@ registry = "oci://ghcr.io/pulseengine/varve/layers"
 # ingestion mechanism exists for (varve REQ-INGEST-001).
 #
 # `binary` is optional and defaults to <name>; kiln ships its CLI as `kilnd`.
+#
+# The versions below are the contents of the live rolling layer 2026.09.1
+# (read back from ghcr.io/pulseengine/varve/layers), so the first deposit made
+# from this repository carries what the realm already carries rather than a
+# quietly older toolchain.
 
 [[tool]]
 name    = "rivet"
@@ -36,7 +46,7 @@ version = "v0.40.0"
 
 [[tool]]
 name    = "synth"
-version = "v0.60.0"
+version = "v0.61.0"
 
 [[tool]]
 name    = "witness"
@@ -46,18 +56,31 @@ version = "v0.43.0"
 name    = "ordeal"
 version = "v0.19.0"
 
+# loom v1.4.1 publishes no aarch64-unknown-linux-gnu build. The assembler
+# reports the payload it could not place by name and deposits the three
+# platforms that exist; the live layer carries the same three.
 [[tool]]
 name    = "loom"
 version = "v1.4.1"
 
 [[tool]]
 name    = "meld"
-version = "v0.52.0"
+version = "v0.53.0"
 
 [[tool]]
 name    = "kiln"
 version = "v0.4.4"
 binary  = "kilnd"
+
+# The assembler rides in the layer like any other tool, so the NEXT deposit
+# can pin an assembler this realm has signed rather than one fetched ad hoc.
+# The repo is `varve`, the payload is `varve-producer`, so `repo` is spelled
+# out; the default asset template (`<name>-<version>-%T.tar.gz`) already names
+# `varve-producer-v0.32.0-<triple>.tar.gz` exactly, so no `asset` is needed.
+[[tool]]
+name    = "varve-producer"
+repo    = "pulseengine/varve"
+version = "v0.32.0"
 
 # wsc ships as raw per-platform binaries from sigil, not a tarball.
 [[tool]]
@@ -76,6 +99,38 @@ layout  = "raw-per-platform"
 "x86_64-apple-darwin"       = "wsc-macos-x86_64"
 "aarch64-unknown-linux-gnu" = "wsc-linux-aarch64"
 "x86_64-unknown-linux-gnu"  = "wsc-linux-x86_64"
+
+# ── with-device: NOT carried, and the reason is a gap in the manifest schema ─
+#
+# The live layer carries `with-device` from the `jess` hub, where the release
+# TAG and the payload's own version are different numbers: jess v0.7.1 ships
+# with-device 0.2.1, jess v0.7.2 ships with-device 0.2.2. The layer records
+# `tool.version = 0.2.1` beside `source.release = v0.7.1` — because the shell
+# assembler's TARBALL_TOOLS encoding had a fifth field for exactly this.
+#
+# layer.toml has no such field. `version` is BOTH the release tag the
+# assembler asks GitHub for AND, with one leading `v` stripped, the version
+# written into the signed layer (varve-producer main.rs: `bare_version`).
+# So the entry can be written two ways and neither is correct:
+#
+#   version = "v0.7.2"  -> the asset can be named explicitly, but the layer
+#                          would state that this binary is `with-device
+#                          0.7.2`, which it is not. A signed claim about the
+#                          layer's own contents that is false is the one thing
+#                          this file exists not to produce.
+#   version = "0.2.2"   -> the recorded version is right, but the assembler
+#                          asks jess for a release tagged `0.2.2`, which does
+#                          not exist, and the deposit fails at the fetch.
+#
+# So the payload is left out, loudly, rather than deposited under a version it
+# does not answer to. Restore this entry once varve can express a release tag
+# distinct from a payload version (varve#132):
+#
+#   [[tool]]
+#   name    = "with-device"
+#   repo    = "pulseengine/jess"
+#   version = "v0.7.2"        # tag; payload answers `with-device 0.2.2`
+#   asset   = "with-device-0.2.2-%T.tar.gz"
 
 # ── VS Code extensions (kind = "vsix") ──────────────────────────────────────
 # `%V` is the bare version; `%P` the VS Code platform tag where the extension
