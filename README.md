@@ -50,26 +50,38 @@ patterns for getting a key into CI without ever writing it to the workspace.
 ## Handover — read this before continuing
 
 This repo is **bootstrapped, not finished.** What works: the manifest, its
-check, the rivet artifacts, and the workflow's fetch-and-verify of a pinned
-varve release. What does not:
+check, the rivet artifacts, the workflow's fetch-and-verify of a pinned varve
+release, and — since varve v0.31.0 — the assembly step itself.
 
-1. **The `layer.toml` → deposit-spec adapter does not exist.** varve's
-   assembler reads its tool list from `TARBALL_TOOLS` / `VSIX_PACKAGES` /
-   `WSC_VERSION` env vars. Something must translate this manifest into them.
-   The deposit workflow currently `exit 1`s at that step with a pointer here,
-   rather than pretending to work.
-   - The natural home is **varve**, beside the assembler, so it is covered by
-     the same system gate. A translator living here would be untested code on
-     the trust path.
-   - varve's assembler now also accepts `COMPOSES` and tolerates an empty
-     `WSC_VERSION`/`VSIX_PACKAGES` (added when a second realm proved
-     unbuildable without it).
-2. **`VARVE_ROLLING_KEY` is not provisioned here.** It is still in varve's
+**The adapter that was the blocker no longer needs writing.** `varve-producer
+deposit --manifest layer.toml` reads *this file* directly. There is no
+`TARBALL_TOOLS` translation to build, and one must not be built: that encoding
+cannot express a payload `layout`, so an `sdk` entry translated through it
+silently becomes an ordinary tarball and the tree gets mined for a binary.
+`varve layer-spec` is the old path and this workflow does not call it.
+
+What is still open:
+
+1. **`VARVE_ROLLING_KEY` is not provisioned here.** It is still in varve's
    settings. Do not remove it there until this repo has published a layer
    successfully — a migration that removes the old path before the new one
    works leaves the realm unable to publish at all.
+2. **`packages: write` on `GITHUB_TOKEN` is not the same as write access to
+   the destination package.** The realm publishes to
+   `ghcr.io/pulseengine/varve/layers`, a package created by *another*
+   repository. Until `pulseengine/varve/layers` grants this repo write access
+   in its package settings, the first `oras blob push` fails with 403. Nothing
+   is published before that point (the immutability check is a read and runs
+   first), so the failure is safe — but it is the first thing to check when
+   the first dispatch goes red.
 3. **No layer has been published from this repo yet.** The next layer is
-   `2026.08.4`, counter `5` — derived from the published registry, not chosen.
+   `2026.09.2`, counter `3` — derived from the published registry, not chosen:
+   the newest tag is `2026.09.1` and its baseline line-status is counter `2`
+   on line `2026.09`.
+4. **`with-device` is left out of the layer**, and `layer.toml` says why at
+   length: jess's release *tag* and the payload's *version* are different
+   numbers, and layer.toml has one `version` field serving as both. Restoring
+   the entry needs a varve change, not an edit here.
 
 ## Traceability
 
