@@ -14,7 +14,16 @@
 # does not exist before v0.31.0. Pinned at v0.30.0 the deposit downloaded a
 # varve binary, found no assembler beside it, and could not have run whatever
 # the adapter step said.
-version = "v0.32.0"
+#
+# v0.32.1, not v0.32.0: this pin also decides which `rolling.pub` the deposit
+# downloads, and the rolling root was ROTATED in v0.32.1 (varve#110, #136 —
+# the old root existed only as an unreadable Actions secret, so it could never
+# be given to this repository). VARVE_ROLLING_KEY here is already the new
+# secret half. Pinned at v0.32.0 the deposit would fetch the OLD public root,
+# sign with the NEW key, and fail its own sanity install — correctly, since
+# that check exists to catch exactly this mismatch on the runner rather than
+# on every consumer's machine.
+version = "v0.32.1"
 
 [realm]
 name    = "pulseengine"
