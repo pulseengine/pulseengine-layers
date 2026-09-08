@@ -31,7 +31,7 @@ channel = "rolling"
 # The registry the deposit is pushed to. The trust root is NOT here — it is
 # the public half consumers already hold; this repo holds the secret half as
 # a secret, never as a file (REQ-PEL-CUSTODY-001).
-registry = "oci://ghcr.io/pulseengine/varve/layers"
+registry = "oci://ghcr.io/pulseengine/layers"
 
 # ── tools ───────────────────────────────────────────────────────────────────
 # `repo` is optional and defaults to `pulseengine/<name>`. Naming it lets a
