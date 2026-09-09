@@ -280,22 +280,47 @@ jobs:
           #     to registry" — so publish-check correctly refuses: it cannot
           #     ESTABLISH absence, and it will not infer absence from a failure.
           #     Correct in general, and it means a new realm path can never
-          #     receive its first layer. That is exactly what happened on the
-          #     move to ghcr.io/pulseengine/layers (varve DD-028).
+          #     receive its first layer. That is the state the move to
+          #     ghcr.io/pulseengine/layers created (varve DD-028).
           #
-          #     The fix is not to teach the check to read error prose — that is
-          #     the refutation that produced this check in the first place, where
-          #     a repo path containing "404" read as absent. It is to make the
-          #     question ANSWERABLE: pushing the empty-config blob creates the
-          #     repository, after which `oras repo tags` returns an empty listing
-          #     and absence is established the ordinary way.
+          #     The fix is NOT to teach the check to read error prose — that is
+          #     the refutation that produced this check, where a repo path
+          #     containing "404" read as absent. It is to make the question
+          #     ANSWERABLE.
           #
-          #     This does not weaken the check. A repository that already carries
-          #     this tag still lists it and the push is still refused. Nothing
-          #     here is a bypass; the blob is the well-known empty JSON, content
-          #     addressed, and unreferenced blobs cost nothing.
+          #     A BLOB IS NOT ENOUGH, and this is measured rather than assumed:
+          #     an earlier attempt pushed the empty-config blob here, the push
+          #     succeeded ("Pushed: [registry] ghcr.io/pulseengine/layers"), and
+          #     `oras repo tags` still answered "name unknown". GHCR materialises
+          #     a package when a MANIFEST is pushed, not when a blob is. So push
+          #     a manifest, under a tag that is not a layer.
+          #
+          #     `realm-bootstrap` cannot be parsed as a `YYYY.MM.P` layer id, so
+          #     varve's `layers_of_line` filters it out: it is never reported as
+          #     a served layer and cannot make an honest registry look like it
+          #     is serving one the signed index never named.
+          #
+          #     Idempotent — same bytes, same digest, same tag — and it weakens
+          #     nothing: the layer tag is still asked about, and a repository
+          #     that already carries it still refuses the push.
           printf '{}' > empty-config.json
           oras blob push "$REPO" empty-config.json
+          EMPTY='sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a'
+          jq -n --arg d "$EMPTY" '{
+            schemaVersion: 2,
+            mediaType: "application/vnd.oci.image.manifest.v1+json",
+            artifactType: "application/vnd.pulseengine.varve.realm-bootstrap.v1+json",
+            config: { mediaType: "application/vnd.oci.empty.v1+json", digest: $d, size: 2 },
+            layers: [ { mediaType: "application/vnd.oci.empty.v1+json", digest: $d, size: 2 } ],
+            annotations: {
+              "org.opencontainers.image.description":
+                "Creates this repository so the immutability check can read a tag listing. Not a layer."
+            }
+          }' > realm-bootstrap.json
+          oras manifest push "$REPO:realm-bootstrap" realm-bootstrap.json
+          # And prove the listing is now answerable, rather than hoping.
+          oras repo tags "$REPO" > bootstrap-tags.txt
+          echo "repository now lists:"; cat bootstrap-tags.txt
 
           # 2. A layer id names one set of bytes, forever (varve
           #    REQ-IMMUTABLE-001). Ask the registry what it already carries
