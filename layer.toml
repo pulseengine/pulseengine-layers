@@ -23,7 +23,14 @@
 # sign with the NEW key, and fail its own sanity install — correctly, since
 # that check exists to catch exactly this mismatch on the runner rather than
 # on every consumer's machine.
-version = "v0.32.1"
+#
+# v0.33.0, not v0.32.1: the ROLLING SUPPORT POLICY is one month as of v0.33.0
+# and six months before it. Deposited with v0.32.1 this layer would state a
+# support-until six months out — the same overstatement varve's
+# REQ-POSTDEPOSIT-001 recorded as accepted for 2026.09.1 on the explicit
+# condition that the NEXT layer carried a correct window. It did not, and this
+# pin is why.
+version = "v0.33.0"
 
 [realm]
 name    = "pulseengine"
@@ -86,10 +93,15 @@ binary  = "kilnd"
 # The repo is `varve`, the payload is `varve-producer`, so `repo` is spelled
 # out; the default asset template (`<name>-<version>-%T.tar.gz`) already names
 # `varve-producer-v0.32.0-<triple>.tar.gz` exactly, so no `asset` is needed.
+# v0.33.0, not v0.32.0: carry-forward was INERT in every earlier producer — it
+# built an OCI reference from a bare digest, which oras rejects at reference
+# parsing before any network call, so every carried payload silently became a
+# full upstream download and the failure was reported as the registry's.
+# Carrying an older assembler would ship that bug into the layer.
 [[tool]]
 name    = "varve-producer"
 repo    = "pulseengine/varve"
-version = "v0.32.0"
+version = "v0.33.0"
 
 # wsc ships as raw per-platform binaries from sigil, not a tarball.
 [[tool]]
