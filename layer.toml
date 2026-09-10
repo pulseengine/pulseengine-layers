@@ -103,6 +103,26 @@ name    = "varve-producer"
 repo    = "pulseengine/varve"
 version = "v0.33.0"
 
+# jess is a HUB: its v0.7.1 RELEASE ships `with-device` at payload version
+# 0.2.1, so the release tag and the payload's own version are different
+# numbers. `release` records the tag to fetch; `version` is what the payload IS
+# and what goes into the signed manifest (varve REQ-PAYLOADID-001).
+#
+# Deriving the version from the tag would put `version = "0.7.1"` in the signed
+# manifest for a binary that answers `with-device 0.2.1` — the layer stating
+# something untrue about its own contents, which is the one thing it exists not
+# to do.
+#
+# RESTORED after the realm move dropped it. The old realm carried it as a
+# five-field TARBALL_TOOLS entry; that encoding did not survive translation to
+# layer.toml, and nothing compared the two lists. gale found it by upgrading.
+[[tool]]
+name    = "with-device"
+repo    = "pulseengine/jess"
+version = "0.2.1"
+release = "v0.7.1"
+asset   = "with-device-%V-%T.tar.gz"
+
 # wsc ships as raw per-platform binaries from sigil, not a tarball.
 [[tool]]
 name    = "wsc"
