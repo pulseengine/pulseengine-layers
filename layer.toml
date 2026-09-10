@@ -30,7 +30,13 @@
 # REQ-POSTDEPOSIT-001 recorded as accepted for 2026.09.1 on the explicit
 # condition that the NEXT layer carried a correct window. It did not, and this
 # pin is why.
-version = "v0.33.0"
+#
+# v0.34.0, not v0.33.0: the v0.33.0 assembler PARSES this file's `release` key
+# and then ignores it, so `with-device` below would be fetched by its payload
+# version 0.2.2 — a jess release that does not exist — and the deposit dies at
+# the fetch. That is not hypothetical; it is how the first 2026.09.3 attempt
+# failed (varve REQ-PAYLOADID-001). The assembler that reads the key is v0.34.0.
+version = "v0.34.0"
 
 [realm]
 name    = "pulseengine"
@@ -101,7 +107,7 @@ binary  = "kilnd"
 [[tool]]
 name    = "varve-producer"
 repo    = "pulseengine/varve"
-version = "v0.33.0"
+version = "v0.34.0"
 
 # jess is a HUB: its v0.7.2 RELEASE ships `with-device` at payload version
 # 0.2.2, so the release tag and the payload's own version are different
