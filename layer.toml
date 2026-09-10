@@ -35,8 +35,14 @@
 # and then ignores it, so `with-device` below would be fetched by its payload
 # version 0.2.2 — a jess release that does not exist — and the deposit dies at
 # the fetch. That is not hypothetical; it is how the first 2026.09.3 attempt
-# failed (varve REQ-PAYLOADID-001). The assembler that reads the key is v0.34.0.
-version = "v0.34.0"
+# failed (varve REQ-PAYLOADID-001).
+#
+# v0.34.1, not v0.34.0: v0.34.0 read the key for the FETCH and not for the
+# STAGING path, downloading with-device under `v0.7.2/` and then looking for it
+# under `0.2.2/`. The second 2026.09.3 attempt got past fetch and verify and
+# died unpacking a file that was never written there. v0.34.1 derives that path
+# from the plan in one place, and makes the version-keyed form unreachable.
+version = "v0.34.1"
 
 [realm]
 name    = "pulseengine"
@@ -107,7 +113,7 @@ binary  = "kilnd"
 [[tool]]
 name    = "varve-producer"
 repo    = "pulseengine/varve"
-version = "v0.34.0"
+version = "v0.34.1"
 
 # jess is a HUB: its v0.7.2 RELEASE ships `with-device` at payload version
 # 0.2.2, so the release tag and the payload's own version are different
