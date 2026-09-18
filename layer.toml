@@ -42,7 +42,14 @@
 # under `0.2.2/`. The second 2026.09.3 attempt got past fetch and verify and
 # died unpacking a file that was never written there. v0.34.1 derives that path
 # from the plan in one place, and makes the version-keyed form unreachable.
-version = "v0.34.1"
+#
+# v0.36.0, not v0.34.1: `[[crate]]` and `[[docs]]` below do not EXIST before
+# v0.36.0 — the schema rejects them outright, so the deposit stops at parsing.
+# And v0.35.0 is not enough: it accepted `[[docs]]` and then deposited every
+# document UNLABELLED (signed as a plain tool, with no format), so
+# `varve export-docs` found nothing in a layer that carried documentation
+# (varve REQ-LAYERDOCS-001, fixed in v0.36.0).
+version = "v0.36.0"
 
 [realm]
 name    = "pulseengine"
@@ -113,7 +120,7 @@ binary  = "kilnd"
 [[tool]]
 name    = "varve-producer"
 repo    = "pulseengine/varve"
-version = "v0.34.1"
+version = "v0.36.0"
 
 # jess is a HUB: its v0.7.2 RELEASE ships `with-device` at payload version
 # 0.2.2, so the release tag and the payload's own version are different
@@ -168,3 +175,51 @@ name    = "spar-aadl"
 repo    = "pulseengine/spar"
 version = "v0.40.0"
 asset   = "spar-aadl-%P-%V.vsix"
+
+# ── crates (kind = "crate") ─────────────────────────────────────────────────
+# A Rust crate the layer carries, as the `.crate` file the release publishes.
+# HELD, never dispatched; consumed by `varve export-cargo`,
+# `export-crates-vendor` and `export-bazel-distdir`.
+#
+# Taken from the varve RELEASE, not from crates.io: the release asset is
+# covered by cosign over SHA256SUMS.txt, so the crate is proven the way every
+# other payload of that release is, instead of arriving over a second trust
+# path. The bytes are the ones crates.io serves — `cargo package` is
+# reproducible, varve's release checks its own `.crate` against the registry
+# index on every tag, and that check passed on v0.36.0.
+#
+# This is the point of REQ-CRATEPAYLOAD-001: varve tells consumers to depend on
+# varve-core rather than shell out, and until now that was the one dependency
+# they could not pin — fetched unpinned, unverified by the realm root, and only
+# with a network, inside a toolchain whose whole purpose is the opposite.
+#
+# `version` is the crate's own version as the registry index spells it (bare),
+# `release` is the tag to fetch. The asset defaults to `<name>-%V.crate`.
+[[crate]]
+name    = "varve-core"
+repo    = "pulseengine/varve"
+version = "0.36.0"
+release = "v0.36.0"
+
+# ── documentation (kind = "docs") ───────────────────────────────────────────
+# The API documentation for the crate above, and `documents` is what ties the
+# two together: `varve export-docs --for varve-core` answers with THIS payload
+# because it says it documents that crate, not because of what it is called.
+#
+# varve deposit refuses a `documents` naming no payload of the layer, so this
+# entry and the `[[crate]]` above stand or fall together — remove the crate and
+# the deposit fails rather than signing a document of nothing.
+#
+# tar.gz rather than zip, on a measurement recorded in varve
+# REQ-LAYERDOCS-001: 3.4 MB compressed, ~10 ms to decompress whole, which
+# `varve-serve` pays once at start.
+[[docs]]
+name      = "varve-core-api"
+repo      = "pulseengine/varve"
+version   = "0.36.0"
+release   = "v0.36.0"
+format    = "rustdoc"
+entry     = "varve_core/index.html"
+title     = "varve-core API"
+documents = "varve-core"
+asset     = "varve-core-%V-rustdoc.tar.gz"
