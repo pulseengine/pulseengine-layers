@@ -81,7 +81,7 @@ version = "v0.40.0"
 
 [[tool]]
 name    = "synth"
-version = "v0.65.0"
+version = "v0.68.0"
 
 [[tool]]
 name    = "witness"
@@ -100,7 +100,7 @@ version = "v1.4.1"
 
 [[tool]]
 name    = "meld"
-version = "v0.55.1"
+version = "v0.58.0"
 
 [[tool]]
 name    = "kiln"
