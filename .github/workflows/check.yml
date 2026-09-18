@@ -27,4 +27,14 @@ jobs:
         run: python3 -m unittest discover -s tools -p 'test_*.py' -v
 
       - name: the manifest itself
+        env:
+          # Required, and its absence is why this job first went red: `gh` with
+          # no token cannot ask, `gh release view` exits non-zero, and the
+          # checker used to read that as "the release does not exist" — eleven
+          # correct pins reported missing, including one published minutes
+          # earlier. The checker now says "could not ask" instead, and the
+          # token is what lets it ask. Cross-repo reads work with the default
+          # token because every pinned repository here is public; the deposit
+          # workflow reads them the same way.
+          GH_TOKEN: ${{ github.token }}
         run: python3 tools/check-manifest.py

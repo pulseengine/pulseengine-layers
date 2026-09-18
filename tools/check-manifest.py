@@ -30,12 +30,29 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from pins import asked_tag, entries, repo_of, sections  # noqa: E402
 
 
-def gh_release_exists(repo: str, tag: str) -> bool:
-    r = subprocess.run(
+def gh_release_state(repo: str, tag: str, run=subprocess.run) -> tuple[str, str]:
+    """("exists"|"missing"|"unknown", detail) for one tag.
+
+    THREE answers, not two. `gh release view` exits non-zero both when the
+    release is not there and when it could not ask — no token in the job, rate
+    limit, network — and reading the second as the first is how this gate
+    reported eleven correct pins as missing, `pulseengine/varve@v0.36.0`
+    among them, in a job that simply had no GH_TOKEN. "I could not check" is
+    its own verdict and has to be said in its own words, which is the same rule
+    scan-pins.py already follows for movement.
+    """
+    r = run(
         ["gh", "release", "view", tag, "--repo", repo, "--json", "tagName"],
         capture_output=True, text=True,
     )
-    return r.returncode == 0
+    if r.returncode == 0:
+        return "exists", ""
+    err = (r.stderr or "").strip()
+    # gh says "release not found" for an absent tag, and something about
+    # authentication, rate limits or the network for everything else.
+    if "release not found" in err.lower() or "not found" in err.lower():
+        return "missing", err[:160]
+    return "unknown", err[:160]
 
 
 def problems(manifest: dict) -> list[str]:
@@ -85,18 +102,32 @@ def main() -> int:
         d = tomllib.load(f)
     fail = problems(d)
 
+    unknown: list[str] = []
     if "--offline" not in sys.argv:
         asked: dict[str, set[str]] = {}
         for _s, e in entries(d):
             asked.setdefault(repo_of(e), set()).add(asked_tag(e))
         for repo, tags in sorted(asked.items()):
             for t in sorted(tags):
-                if not gh_release_exists(repo, t):
+                state, detail = gh_release_state(repo, t)
+                if state == "missing":
                     fail.append(f"{repo}@{t} does not exist upstream")
+                elif state == "unknown":
+                    unknown.append(f"{repo}@{t}: {detail}")
+
+    if unknown:
+        for u in unknown:
+            print(f"::error::could not ask upstream: {u}", file=sys.stderr)
+        print(
+            "::error::refusing to call these pins good OR bad from an incomplete "
+            "check — 'I could not ask' is not 'it is not there'. Give the job a "
+            "GH_TOKEN, or run with --offline to skip the upstream check entirely.",
+            file=sys.stderr,
+        )
 
     for f in fail:
         print(f"FAIL: {f}", file=sys.stderr)
-    if fail:
+    if fail or unknown:
         return 1
     counts = ", ".join(f"{len(d[s])} {s}" for s in sections(d))
     print(f"layer.toml OK — {counts}; no repo at two releases")

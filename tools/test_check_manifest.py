@@ -99,6 +99,57 @@ version = "v0.35.0"
         self.assertTrue(any("varve-core-api" in f for f in fail), fail)
 
 
+class CouldNotAsk(unittest.TestCase):
+    """"I could not check" is not "it is not there"."""
+
+    class Reply:
+        def __init__(self, code, stderr=""):
+            self.returncode, self.stderr, self.stdout = code, stderr, ""
+
+    def run_returning(self, reply):
+        def run(*_a, **_k):
+            return reply
+        return run
+
+    def test_a_present_release_exists(self):
+        state, _ = check_manifest.gh_release_state(
+            "pulseengine/varve", "v0.36.0", run=self.run_returning(self.Reply(0))
+        )
+        self.assertEqual(state, "exists")
+
+    def test_an_absent_release_is_missing(self):
+        state, _ = check_manifest.gh_release_state(
+            "pulseengine/varve", "v9.9.9",
+            run=self.run_returning(self.Reply(1, "release not found")),
+        )
+        self.assertEqual(state, "missing")
+
+    def test_no_token_is_UNKNOWN_and_not_missing(self):
+        # The exact failure this gate produced on its first run: a job without
+        # GH_TOKEN reported eleven correct pins as absent, including a release
+        # published minutes earlier.
+        state, detail = check_manifest.gh_release_state(
+            "pulseengine/kiln", "v0.5.0",
+            run=self.run_returning(self.Reply(
+                4,
+                "gh: To use GitHub CLI in a GitHub Actions workflow, set the GH_TOKEN "
+                "environment variable.",
+            )),
+        )
+        self.assertEqual(
+            state, "unknown",
+            "a job that cannot authenticate must not report the release as absent",
+        )
+        self.assertIn("GH_TOKEN", detail)
+
+    def test_a_rate_limit_is_unknown_too(self):
+        state, _ = check_manifest.gh_release_state(
+            "pulseengine/spar", "v0.40.0",
+            run=self.run_returning(self.Reply(1, "API rate limit exceeded")),
+        )
+        self.assertEqual(state, "unknown")
+
+
 class TheLiveManifest(unittest.TestCase):
     def test_the_manifest_in_this_repository_passes_the_offline_checks(self):
         path = pathlib.Path(__file__).parent.parent / "layer.toml"
