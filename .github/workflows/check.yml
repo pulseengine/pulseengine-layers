@@ -1,0 +1,30 @@
+name: check
+
+# The scanner decides, with no person in the loop, what an immutable signed
+# layer pins — and this repository had no test job at all, so its two defects
+# (only `[[tool]]` scanned; a hub payload's version taken from a release tag)
+# were found by reading rather than by running. A gate that runs on every change
+# is what makes the next one cheaper to find.
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: the manifest parses and the scanner's rules hold
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4
+
+      - name: the scanner's rules
+        # No network: `plan` takes the "latest release" function as an
+        # argument, so the rules are tested without asking a forge anything.
+        run: python3 -m unittest discover -s tools -p 'test_*.py' -v
+
+      - name: the manifest itself
+        run: python3 tools/check-manifest.py
