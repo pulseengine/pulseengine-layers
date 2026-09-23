@@ -73,7 +73,7 @@ registry = "oci://ghcr.io/pulseengine/layers"
 
 [[tool]]
 name    = "rivet"
-version = "v0.37.0"
+version = "v0.38.0"
 
 [[tool]]
 name    = "spar"
@@ -81,7 +81,7 @@ version = "v0.40.0"
 
 [[tool]]
 name    = "synth"
-version = "v0.70.0"
+version = "v0.71.0"
 
 [[tool]]
 name    = "witness"
@@ -167,7 +167,7 @@ layout  = "raw-per-platform"
 [[vsix]]
 name    = "rivet-sdlc"
 repo    = "pulseengine/rivet"
-version = "v0.37.0"
+version = "v0.38.0"
 asset   = "rivet-sdlc-%V.vsix"
 
 [[vsix]]
