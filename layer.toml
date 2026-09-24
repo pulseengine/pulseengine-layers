@@ -81,7 +81,7 @@ version = "v0.40.0"
 
 [[tool]]
 name    = "synth"
-version = "v0.72.0"
+version = "v0.73.0"
 
 [[tool]]
 name    = "witness"
@@ -89,7 +89,7 @@ version = "v0.43.0"
 
 [[tool]]
 name    = "ordeal"
-version = "v0.20.0"
+version = "v0.21.0"
 
 # loom v1.4.1 publishes no aarch64-unknown-linux-gnu build. The assembler
 # reports the payload it could not place by name and deposits the three
