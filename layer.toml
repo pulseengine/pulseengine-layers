@@ -122,6 +122,25 @@ name    = "varve-producer"
 repo    = "pulseengine/varve"
 version = "v0.38.0"
 
+# The VIEWER for the documentation this layer already carries.
+#
+# This realm has shipped a `docs` payload since v0.35.0 — `varve-core-api`,
+# the rustdoc for the crate it also carries — and did not ship the one tool
+# that reads it. `varve-serve` exists for exactly that: it reads documentation
+# payloads out of the STORE, against the signed manifest, without an export
+# step. A consumer of this layer had the documentation and no way to open it
+# except by exporting the tree by hand.
+#
+# Same shape as the assembler above: the repo is `varve`, the payload is
+# `varve-serve`, and the default asset template already names
+# `varve-serve-v0.38.0-<triple>.tar.gz` exactly, so no `asset` is needed.
+# Published for all four triples since v0.35.0 — checked against the v0.38.0
+# release, not assumed.
+[[tool]]
+name    = "varve-serve"
+repo    = "pulseengine/varve"
+version = "v0.38.0"
+
 # jess is a HUB: its v0.7.2 RELEASE ships `with-device` at payload version
 # 0.2.2, so the release tag and the payload's own version are different
 # numbers. `release` records the tag to fetch; `version` is what the payload IS
