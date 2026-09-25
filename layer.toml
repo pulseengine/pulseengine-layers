@@ -73,7 +73,7 @@ registry = "oci://ghcr.io/pulseengine/layers"
 
 [[tool]]
 name    = "rivet"
-version = "v0.38.0"
+version = "v0.39.0"
 
 [[tool]]
 name    = "spar"
@@ -81,7 +81,7 @@ version = "v0.40.0"
 
 [[tool]]
 name    = "synth"
-version = "v0.74.0"
+version = "v0.75.0"
 
 [[tool]]
 name    = "witness"
@@ -89,7 +89,7 @@ version = "v0.43.0"
 
 [[tool]]
 name    = "ordeal"
-version = "v0.21.0"
+version = "v0.22.0"
 
 # loom v1.4.1 publishes no aarch64-unknown-linux-gnu build. The assembler
 # reports the payload it could not place by name and deposits the three
@@ -167,7 +167,7 @@ layout  = "raw-per-platform"
 [[vsix]]
 name    = "rivet-sdlc"
 repo    = "pulseengine/rivet"
-version = "v0.38.0"
+version = "v0.39.0"
 asset   = "rivet-sdlc-%V.vsix"
 
 [[vsix]]
