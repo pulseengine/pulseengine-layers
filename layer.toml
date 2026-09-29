@@ -83,6 +83,14 @@ version = "v0.40.0"
 name    = "synth"
 version = "v0.75.0"
 
+# Ingested from the STATIC MUSL asset. The key is still the gnu triple because
+# `host_platform()` resolves every Linux host to `{arch}-unknown-linux-gnu`; a
+# musl-KEYED payload would match no host and fail closed. A triple here is a
+# platform KEY, not a libc claim (varve#175), and this is the same shape the
+# pulseengine-wasm realm already uses for `wac`.
+[tool.asset-for]
+"x86_64-unknown-linux-gnu"  = "synth-%R-x86_64-unknown-linux-musl.tar.gz"
+"aarch64-unknown-linux-gnu" = "synth-%R-aarch64-unknown-linux-musl.tar.gz"
 [[tool]]
 name    = "witness"
 version = "v0.43.0"
@@ -94,6 +102,15 @@ version = "v0.22.0"
 # loom v1.4.1 publishes no aarch64-unknown-linux-gnu build. The assembler
 # reports the payload it could not place by name and deposits the three
 # platforms that exist; the live layer carries the same three.
+
+# Ingested from the STATIC MUSL asset. The key is still the gnu triple because
+# `host_platform()` resolves every Linux host to `{arch}-unknown-linux-gnu`; a
+# musl-KEYED payload would match no host and fail closed. A triple here is a
+# platform KEY, not a libc claim (varve#175), and this is the same shape the
+# pulseengine-wasm realm already uses for `wac`.
+[tool.asset-for]
+"x86_64-unknown-linux-gnu"  = "ordeal-%R-x86_64-unknown-linux-musl.tar.gz"
+"aarch64-unknown-linux-gnu" = "ordeal-%R-aarch64-unknown-linux-musl.tar.gz"
 [[tool]]
 name    = "loom"
 version = "v1.4.1"
@@ -102,6 +119,14 @@ version = "v1.4.1"
 name    = "meld"
 version = "v0.58.3"
 
+# Ingested from the STATIC MUSL asset. The key is still the gnu triple because
+# `host_platform()` resolves every Linux host to `{arch}-unknown-linux-gnu`; a
+# musl-KEYED payload would match no host and fail closed. A triple here is a
+# platform KEY, not a libc claim (varve#175), and this is the same shape the
+# pulseengine-wasm realm already uses for `wac`.
+[tool.asset-for]
+"x86_64-unknown-linux-gnu"  = "meld-%R-x86_64-unknown-linux-musl.tar.gz"
+"aarch64-unknown-linux-gnu" = "meld-%R-aarch64-unknown-linux-musl.tar.gz"
 [[tool]]
 name    = "kiln"
 version = "v0.5.0"
@@ -120,7 +145,7 @@ binary  = "kilnd"
 [[tool]]
 name    = "varve-producer"
 repo    = "pulseengine/varve"
-version = "v0.38.0"
+version = "v0.39.0"
 
 # The VIEWER for the documentation this layer already carries.
 #
@@ -134,12 +159,21 @@ version = "v0.38.0"
 # Same shape as the assembler above: the repo is `varve`, the payload is
 # `varve-serve`, and the default asset template already names
 # `varve-serve-v0.38.0-<triple>.tar.gz` exactly, so no `asset` is needed.
-# Published for all four triples since v0.35.0 — checked against the v0.38.0
+# Published for all four triples since v0.35.0 — checked against the v0.39.0
 # release, not assumed.
+
+# Ingested from the STATIC MUSL asset. The key is still the gnu triple because
+# `host_platform()` resolves every Linux host to `{arch}-unknown-linux-gnu`; a
+# musl-KEYED payload would match no host and fail closed. A triple here is a
+# platform KEY, not a libc claim (varve#175), and this is the same shape the
+# pulseengine-wasm realm already uses for `wac`.
+[tool.asset-for]
+"x86_64-unknown-linux-gnu"  = "varve-producer-%R-x86_64-unknown-linux-musl.tar.gz"
+"aarch64-unknown-linux-gnu" = "varve-producer-%R-aarch64-unknown-linux-musl.tar.gz"
 [[tool]]
 name    = "varve-serve"
 repo    = "pulseengine/varve"
-version = "v0.38.0"
+version = "v0.39.0"
 
 # jess is a HUB: its v0.7.2 RELEASE ships `with-device` at payload version
 # 0.2.2, so the release tag and the payload's own version are different
@@ -154,6 +188,15 @@ version = "v0.38.0"
 # RESTORED after the realm move dropped it. The old realm carried it as a
 # five-field TARBALL_TOOLS entry; that encoding did not survive translation to
 # layer.toml, and nothing compared the two lists. gale found it by upgrading.
+
+# Ingested from the STATIC MUSL asset. The key is still the gnu triple because
+# `host_platform()` resolves every Linux host to `{arch}-unknown-linux-gnu`; a
+# musl-KEYED payload would match no host and fail closed. A triple here is a
+# platform KEY, not a libc claim (varve#175), and this is the same shape the
+# pulseengine-wasm realm already uses for `wac`.
+[tool.asset-for]
+"x86_64-unknown-linux-gnu"  = "varve-serve-%R-x86_64-unknown-linux-musl.tar.gz"
+"aarch64-unknown-linux-gnu" = "varve-serve-%R-aarch64-unknown-linux-musl.tar.gz"
 [[tool]]
 name    = "with-device"
 repo    = "pulseengine/jess"
@@ -217,8 +260,8 @@ asset   = "spar-aadl-%P-%V.vsix"
 [[crate]]
 name    = "varve-core"
 repo    = "pulseengine/varve"
-version = "0.38.0"
-release = "v0.38.0"
+version = "0.39.0"
+release = "v0.39.0"
 
 # ── documentation (kind = "docs") ───────────────────────────────────────────
 # The API documentation for the crate above, and `documents` is what ties the
@@ -235,8 +278,8 @@ release = "v0.38.0"
 [[docs]]
 name      = "varve-core-api"
 repo      = "pulseengine/varve"
-version   = "0.38.0"
-release   = "v0.38.0"
+version   = "0.39.0"
+release   = "v0.39.0"
 format    = "rustdoc"
 entry     = "varve_core/index.html"
 title     = "varve-core API"
