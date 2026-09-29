@@ -81,7 +81,7 @@ version = "v0.40.0"
 
 [[tool]]
 name    = "synth"
-version = "v0.75.0"
+version = "v0.76.0"
 
 [[tool]]
 name    = "witness"
@@ -120,7 +120,7 @@ binary  = "kilnd"
 [[tool]]
 name    = "varve-producer"
 repo    = "pulseengine/varve"
-version = "v0.38.0"
+version = "v0.39.0"
 
 # The VIEWER for the documentation this layer already carries.
 #
@@ -139,7 +139,7 @@ version = "v0.38.0"
 [[tool]]
 name    = "varve-serve"
 repo    = "pulseengine/varve"
-version = "v0.38.0"
+version = "v0.39.0"
 
 # jess is a HUB: its v0.7.2 RELEASE ships `with-device` at payload version
 # 0.2.2, so the release tag and the payload's own version are different
@@ -217,8 +217,8 @@ asset   = "spar-aadl-%P-%V.vsix"
 [[crate]]
 name    = "varve-core"
 repo    = "pulseengine/varve"
-version = "0.38.0"
-release = "v0.38.0"
+version = "0.39.0"
+release = "v0.39.0"
 
 # ── documentation (kind = "docs") ───────────────────────────────────────────
 # The API documentation for the crate above, and `documents` is what ties the
@@ -235,8 +235,8 @@ release = "v0.38.0"
 [[docs]]
 name      = "varve-core-api"
 repo      = "pulseengine/varve"
-version   = "0.38.0"
-release   = "v0.38.0"
+version   = "0.39.0"
+release   = "v0.39.0"
 format    = "rustdoc"
 entry     = "varve_core/index.html"
 title     = "varve-core API"
