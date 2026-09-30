@@ -89,7 +89,7 @@ version = "v0.40.0"
 
 [[tool]]
 name    = "synth"
-version = "v0.76.0"
+version = "v0.77.0"
 
 # Ingested from the STATIC MUSL asset. The key is still the gnu triple because
 # `host_platform()` resolves every Linux host to `{arch}-unknown-linux-gnu`; a
@@ -110,7 +110,7 @@ name    = "ordeal"
 # non-power-of-two bit widths, returning Unsat WITH a certificate
 # that re-checks. A layer that ships the affected solver hands
 # every consumer a prover that can certify a false result.
-version = "v0.22.1"
+version = "v0.23.0"
 
 # loom v1.4.1 publishes no aarch64-unknown-linux-gnu build. The assembler
 # reports the payload it could not place by name and deposits the three
