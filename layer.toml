@@ -7,6 +7,14 @@
 # this file. Neither is vendored here (REQ-PEL-ASSEMBLER-001).
 
 [varve]
+# v0.39.0, not v0.36.0: `asset-for` values are TEMPLATES only from v0.39.0
+# (varve#199). v0.36.0 takes them literally, so the musl mappings below
+# resolved to files named `synth-%R-…` that do not exist, and the
+# assembler omitted those payloads — layer 2026.09.18 shipped with NO
+# Linux build of ordeal, synth, meld, varve-producer or varve-serve.
+# The omission is reported per payload and the deposit still succeeds,
+# which is correct for a genuinely unbuilt platform and is exactly why
+# this was quiet.
 # The varve release whose binary AND assembler build this layer. Pinned, so a
 # layer can be traced to the assembler that produced it.
 #
@@ -49,7 +57,7 @@
 # document UNLABELLED (signed as a plain tool, with no format), so
 # `varve export-docs` found nothing in a layer that carried documentation
 # (varve REQ-LAYERDOCS-001, fixed in v0.36.0).
-version = "v0.36.0"
+version = "v0.39.0"
 
 [realm]
 name    = "pulseengine"
