@@ -97,7 +97,12 @@ version = "v0.43.0"
 
 [[tool]]
 name    = "ordeal"
-version = "v0.22.0"
+# v0.22.1, not v0.22.0: GHSA-xfxf-qxr3-435x (HIGH). Every release
+# from 0.2.0 to 0.22.0 mis-encoded shifts and rotations at
+# non-power-of-two bit widths, returning Unsat WITH a certificate
+# that re-checks. A layer that ships the affected solver hands
+# every consumer a prover that can certify a false result.
+version = "v0.22.1"
 
 # loom v1.4.1 publishes no aarch64-unknown-linux-gnu build. The assembler
 # reports the payload it could not place by name and deposits the three
