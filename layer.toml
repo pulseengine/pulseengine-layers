@@ -89,7 +89,7 @@ version = "v0.40.0"
 
 [[tool]]
 name    = "synth"
-version = "v0.77.0"
+version = "v0.78.0"
 
 # Ingested from the STATIC MUSL asset. The key is still the gnu triple because
 # `host_platform()` resolves every Linux host to `{arch}-unknown-linux-gnu`; a
