@@ -36,7 +36,13 @@ on:
         type: string
 
 permissions:
-  contents: read
+  # `write`, because the line-index document is COMMITTED here and each
+  # deposit appends the layer it just pushed (varve DD-027). The list
+  # cannot come from the registry: the index exists to detect a registry
+  # HIDING a layer, and a hiding registry would omit it from the tag
+  # listing and therefore from the index, so the two would agree and
+  # nothing would be reported.
+  contents: write
   packages: write
 
 jobs:
@@ -385,6 +391,107 @@ jobs:
             # 4. Push the manifest under the layer tag.
             oras manifest push "$REPO:$LAYER" artifact-manifest.json
           fi
+
+      # ── the realm's signed line index (varve REQ-INDEXAUTH-001 clause 1,
+      #    REQ-POSTDEPOSIT-001 clause 5) ──────────────────────────────────────
+      #
+      # AFTER the layer push, never before. An index naming a layer the
+      # registry does not serve is exactly what omission detection screams
+      # about, so publishing one before the push succeeded would manufacture
+      # the alarm this mechanism exists to raise honestly.
+      #
+      # Until this step existed the index was a check that could not fire:
+      # varve has read `line-index-<line>` since 2026-09-06 and no realm had
+      # ever written one, so every guarantee resting on it — omission
+      # detection, `varve outdated` — was reasoning about a document that did
+      # not exist.
+      - name: Append this layer to the line index, sign it, and publish it
+        env:
+          VARVE_ROLLING_KEY: ${{ secrets.VARVE_ROLLING_KEY }}
+          GH_TOKEN: ${{ github.token }}
+          LAYER: ${{ inputs.layer }}
+          COUNTER: ${{ inputs.counter }}
+          CHANNEL: ${{ steps.pins.outputs.channel }}
+          REPO: ${{ steps.pins.outputs.repo }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          VARVE=.varve/bin/varve
+          LINE="${LAYER%.*}"
+          DOC="line-index/$LINE.json"
+          ISSUED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+          # The PAYLOAD digest — what a pin's `digest` names and what an index
+          # entry must carry, so a consumer can compare an entry with a pin
+          # directly. Re-read from the layout rather than passed down, so this
+          # step cannot be given a digest that belongs to another layer.
+          SIG_TYPE='application/vnd.pulseengine.varve.signature.v1+json'
+          STATUS_TYPE='application/vnd.pulseengine.varve.line-status.v1+json'
+          PAYLOAD_DIGEST=$(jq -r --arg t "$SIG_TYPE" --arg s "$STATUS_TYPE" \
+            '[.manifests[] | select(.artifactType != $t and .artifactType != $s)][0].digest' \
+            layer-layout/index.json)
+          test -n "$PAYLOAD_DIGEST" || { echo "::error::no payload digest in the layout"; exit 1; }
+
+          python3 tools/append-index.py --file "$DOC" \
+            --layer "$LAYER" --digest "$PAYLOAD_DIGEST" \
+            --channel "$CHANNEL" --counter "$COUNTER" --issued-at "$ISSUED_AT"
+
+          # Commit BEFORE publishing. A published index whose document is not in
+          # main is one nobody can review or append to next time, and the
+          # document is the artifact of record here — the registry copy is a
+          # distribution of it.
+          if ! git diff --quiet -- "$DOC" || [ -n "$(git status --porcelain -- "$DOC")" ]; then
+            git config user.name  "github-actions[bot]"
+            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+            git add "$DOC"
+            git commit -m "$(printf 'Line %s index names %s\n\nAppended by the deposit that pushed it. The list is committed here and\nnever read from the registry: an index derived from the listing it is meant\nto check would agree with a registry that hides a layer (varve DD-027).' "$LINE" "$LAYER")"
+            # The scanner commits layer.toml on its own schedule, so rebase
+            # rather than assume this branch is still at the tip.
+            git pull --rebase --quiet origin main
+            git push origin HEAD:main
+          else
+            echo "::notice::$DOC already names $LAYER — nothing to commit"
+          fi
+
+          # Sign with the realm root. The key reaches varve through a FILE
+          # DESCRIPTOR, never a file (varve REQ-NOKEYDISK-001).
+          test -n "$VARVE_ROLLING_KEY" || { echo "::error::VARVE_ROLLING_KEY not provisioned"; exit 1; }
+          "$VARVE" sign-index --file "$DOC" \
+            --key <(printf '%s' "$VARVE_ROLLING_KEY") --key-id varve-rolling-1 \
+            --out line-index.dsse.json
+
+          # The manifest shape is copied from `varve docs attach-index`, not
+          # re-derived: it is what RegistrySource looks for, and a role
+          # annotation spelled differently reads as no index at all.
+          oras login ghcr.io -u "$GITHUB_ACTOR" --password-stdin <<< "$GH_TOKEN"
+          oras blob push "$REPO" line-index.dsse.json
+          jq -n \
+            --arg d "sha256:$(sha256sum line-index.dsse.json | cut -d' ' -f1)" \
+            --argjson s "$(wc -c < line-index.dsse.json)" \
+            '{
+              schemaVersion: 2,
+              mediaType: "application/vnd.oci.image.manifest.v1+json",
+              artifactType: "application/vnd.pulseengine.varve.line-index.v1+json",
+              config: { mediaType: "application/vnd.oci.empty.v1+json",
+                        digest: "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
+                        size: 2 },
+              layers: [ { mediaType: "application/json", digest: $d, size: $s,
+                          annotations: {"eu.pulseengine.varve.role": "line-index"} } ]
+            }' > line-index-manifest.json
+          oras manifest push "$REPO:line-index-$LINE" line-index-manifest.json
+          echo "::notice::published line-index-$LINE naming $(jq '.layers | length' "$DOC") layer(s)"
+
+          # The gate on the whole step: read it back the way a CONSUMER does
+          # and require this layer to be in it. A signature over a document
+          # nobody can fetch is the failure this step exists to end, and
+          # "oras said ok" is not "a consumer can read it".
+          oras manifest fetch "$REPO:line-index-$LINE" --descriptor >/dev/null
+          FETCHED="$(oras blob fetch "$REPO@$(jq -r '.layers[0].digest' line-index-manifest.json)" --output -)"
+          printf '%s' "$FETCHED" | jq -e --arg l "$LAYER" \
+            '(.payload | @base64d | fromjson).layers | map(.layer) | index($l) != null' \
+            >/dev/null \
+            || { echo "::error::the published index does not name $LAYER"; exit 1; }
+          echo "::notice::read back: the published index names $LAYER"
 
       - name: Upload the oci-layout (artifact of record)
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
