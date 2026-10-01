@@ -81,7 +81,7 @@ registry = "oci://ghcr.io/pulseengine/layers"
 
 [[tool]]
 name    = "rivet"
-version = "v0.39.0"
+version = "v0.40.0"
 
 [[tool]]
 name    = "spar"
@@ -110,7 +110,7 @@ name    = "ordeal"
 # non-power-of-two bit widths, returning Unsat WITH a certificate
 # that re-checks. A layer that ships the affected solver hands
 # every consumer a prover that can certify a false result.
-version = "v0.24.0"
+version = "v0.25.0"
 
 # loom v1.4.1 publishes no aarch64-unknown-linux-gnu build. The assembler
 # reports the payload it could not place by name and deposits the three
@@ -242,7 +242,7 @@ layout  = "raw-per-platform"
 [[vsix]]
 name    = "rivet-sdlc"
 repo    = "pulseengine/rivet"
-version = "v0.39.0"
+version = "v0.40.0"
 asset   = "rivet-sdlc-%V.vsix"
 
 [[vsix]]
