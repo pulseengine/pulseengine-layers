@@ -57,7 +57,24 @@
 # document UNLABELLED (signed as a plain tool, with no format), so
 # `varve export-docs` found nothing in a layer that carried documentation
 # (varve REQ-LAYERDOCS-001, fixed in v0.36.0).
-version = "v0.39.0"
+#
+# v0.41.0, not v0.39.0: a Linux payload STATES THE LIBC IT NEEDS from v0.40.0
+# (varve REQ-LIBCSTATED-001), measured from the payload's own PT_INTERP rather
+# than declared. Measured 2026-10-08: published layer 2026.10.5 carries 57
+# payload layers and NOT ONE states a libc, because the v0.39.0 assembler has
+# nothing to state it with. That is the gap varve#175 is about — every tool in
+# this realm is glibc-only, so the layer cannot start on RHEL 9, Debian 12,
+# Alpine or distroless, and today nothing in the layer says so. A consumer
+# cannot discover it without running the binary and reading a loader error.
+#
+# The deposit also refuses a declared libc that the staged bytes contradict, so
+# the annotation is a measurement and not a claim.
+#
+# v0.41.0 rather than v0.40.0 because v0.41.0 is the current release and adds
+# nothing this realm must avoid: its provenance change affects only upstreams
+# that attest per asset, and every payload here is ingested from a
+# cosign-signed SHA256SUMS.
+version = "v0.41.0"
 
 [realm]
 name    = "pulseengine"
