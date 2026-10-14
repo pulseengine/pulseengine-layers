@@ -102,11 +102,11 @@ version = "v0.40.0"
 
 [[tool]]
 name    = "spar"
-version = "v0.44.0"
+version = "v0.45.0"
 
 [[tool]]
 name    = "synth"
-version = "v0.84.0"
+version = "v0.85.0"
 
 # Ingested from the STATIC MUSL asset. The key is still the gnu triple because
 # `host_platform()` resolves every Linux host to `{arch}-unknown-linux-gnu`; a
@@ -265,7 +265,7 @@ asset   = "rivet-sdlc-%V.vsix"
 [[vsix]]
 name    = "spar-aadl"
 repo    = "pulseengine/spar"
-version = "v0.44.0"
+version = "v0.45.0"
 asset   = "spar-aadl-%P-%V.vsix"
 
 # ── crates (kind = "crate") ─────────────────────────────────────────────────
