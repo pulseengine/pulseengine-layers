@@ -102,7 +102,7 @@ version = "v0.40.0"
 
 [[tool]]
 name    = "spar"
-version = "v0.45.0"
+version = "v0.46.0"
 
 [[tool]]
 name    = "synth"
@@ -127,7 +127,7 @@ name    = "ordeal"
 # non-power-of-two bit widths, returning Unsat WITH a certificate
 # that re-checks. A layer that ships the affected solver hands
 # every consumer a prover that can certify a false result.
-version = "v0.30.0"
+version = "v0.31.0"
 
 # loom v1.4.1 publishes no aarch64-unknown-linux-gnu build. The assembler
 # reports the payload it could not place by name and deposits the three
@@ -159,7 +159,7 @@ version = "v0.62.0"
 "aarch64-unknown-linux-gnu" = "meld-%R-aarch64-unknown-linux-musl.tar.gz"
 [[tool]]
 name    = "kiln"
-version = "v0.5.0"
+version = "v0.6.0"
 binary  = "kilnd"
 
 # The assembler rides in the layer like any other tool, so the NEXT deposit
@@ -175,7 +175,7 @@ binary  = "kilnd"
 [[tool]]
 name    = "varve-producer"
 repo    = "pulseengine/varve"
-version = "v0.41.0"
+version = "v0.42.0"
 
 # The VIEWER for the documentation this layer already carries.
 #
@@ -203,7 +203,7 @@ version = "v0.41.0"
 [[tool]]
 name    = "varve-serve"
 repo    = "pulseengine/varve"
-version = "v0.41.0"
+version = "v0.42.0"
 
 # jess is a HUB: its v0.7.2 RELEASE ships `with-device` at payload version
 # 0.2.2, so the release tag and the payload's own version are different
@@ -265,7 +265,7 @@ asset   = "rivet-sdlc-%V.vsix"
 [[vsix]]
 name    = "spar-aadl"
 repo    = "pulseengine/spar"
-version = "v0.45.0"
+version = "v0.46.0"
 asset   = "spar-aadl-%P-%V.vsix"
 
 # ── crates (kind = "crate") ─────────────────────────────────────────────────
@@ -290,8 +290,8 @@ asset   = "spar-aadl-%P-%V.vsix"
 [[crate]]
 name    = "varve-core"
 repo    = "pulseengine/varve"
-version = "0.41.0"
-release = "v0.41.0"
+version = "0.42.0"
+release = "v0.42.0"
 
 # ── documentation (kind = "docs") ───────────────────────────────────────────
 # The API documentation for the crate above, and `documents` is what ties the
@@ -308,8 +308,8 @@ release = "v0.41.0"
 [[docs]]
 name      = "varve-core-api"
 repo      = "pulseengine/varve"
-version   = "0.41.0"
-release   = "v0.41.0"
+version   = "0.42.0"
+release   = "v0.42.0"
 format    = "rustdoc"
 entry     = "varve_core/index.html"
 title     = "varve-core API"
