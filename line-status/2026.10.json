@@ -50,7 +50,8 @@
         "2026.10.14",
         "2026.10.15",
         "2026.10.16",
-        "2026.10.17"
+        "2026.10.17",
+        "2026.10.18"
       ],
       "workaround": "No layer yet carries a wsc built on rustls 0.23.46 or later."
     },
@@ -76,7 +77,8 @@
         "2026.10.14",
         "2026.10.15",
         "2026.10.16",
-        "2026.10.17"
+        "2026.10.17",
+        "2026.10.18"
       ],
       "workaround": "No layer yet carries a wsc built on rustls 0.23.46 or later."
     },
@@ -102,7 +104,8 @@
         "2026.10.14",
         "2026.10.15",
         "2026.10.16",
-        "2026.10.17"
+        "2026.10.17",
+        "2026.10.18"
       ],
       "workaround": "No layer yet carries a wsc built on rustls 0.23.46 or later."
     },
@@ -128,7 +131,8 @@
         "2026.10.14",
         "2026.10.15",
         "2026.10.16",
-        "2026.10.17"
+        "2026.10.17",
+        "2026.10.18"
       ],
       "workaround": "No layer yet carries a wsc built on rustls 0.23.46 or later."
     }
