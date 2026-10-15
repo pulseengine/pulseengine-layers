@@ -118,7 +118,7 @@ version = "v0.86.0"
 "aarch64-unknown-linux-gnu" = "synth-%R-aarch64-unknown-linux-musl.tar.gz"
 [[tool]]
 name    = "witness"
-version = "v0.44.0"
+version = "v0.45.0"
 
 [[tool]]
 name    = "ordeal"
