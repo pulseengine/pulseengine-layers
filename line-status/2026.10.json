@@ -29,6 +29,32 @@
       "workaround": "Avoid --memory shared together with --address-rebase, or move to a layer carrying meld 0.62.0 or later."
     },
     {
+      "id": "RUSTSEC-2026-0285",
+      "title": "wsc 0.11.0 embeds rustls 0.23.34: TLS 1.3 handshake messages incorrectly accepted across encryption level boundaries (GHSA-2mjx-qc3c-rqvc; fixed in rustls 0.23.45)",
+      "severity": "medium",
+      "affected": [
+        "2026.10.0",
+        "2026.10.1",
+        "2026.10.2",
+        "2026.10.3",
+        "2026.10.4",
+        "2026.10.5",
+        "2026.10.6",
+        "2026.10.7",
+        "2026.10.8",
+        "2026.10.9",
+        "2026.10.10",
+        "2026.10.11",
+        "2026.10.12",
+        "2026.10.13",
+        "2026.10.14",
+        "2026.10.15",
+        "2026.10.16",
+        "2026.10.17"
+      ],
+      "workaround": "No layer yet carries a wsc built on rustls 0.23.46 or later."
+    },
+    {
       "id": "RUSTSEC-2026-0346",
       "title": "wsc 0.11.0 embeds rustls 0.23.34: Debug impls for client session values expose TLS secrets (GHSA-c8m5-c952-6cm4; fixed in rustls 0.23.46)",
       "severity": "medium",
