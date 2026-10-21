@@ -147,7 +147,7 @@ version = "v1.4.1"
 
 [[tool]]
 name    = "meld"
-version = "v0.63.0"
+version = "v0.64.0"
 
 # Ingested from the STATIC MUSL asset. The key is still the gnu triple because
 # `host_platform()` resolves every Linux host to `{arch}-unknown-linux-gnu`; a
