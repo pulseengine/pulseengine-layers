@@ -106,7 +106,7 @@ version = "v0.46.0"
 
 [[tool]]
 name    = "synth"
-version = "v0.87.0"
+version = "v0.88.0"
 
 # Ingested from the STATIC MUSL asset. The key is still the gnu triple because
 # `host_platform()` resolves every Linux host to `{arch}-unknown-linux-gnu`; a
@@ -147,7 +147,7 @@ version = "v1.4.1"
 
 [[tool]]
 name    = "meld"
-version = "v0.64.0"
+version = "v0.65.0"
 
 # Ingested from the STATIC MUSL asset. The key is still the gnu triple because
 # `host_platform()` resolves every Linux host to `{arch}-unknown-linux-gnu`; a
@@ -175,7 +175,7 @@ binary  = "kilnd"
 [[tool]]
 name    = "varve-producer"
 repo    = "pulseengine/varve"
-version = "v0.42.0"
+version = "v0.43.0"
 
 # The VIEWER for the documentation this layer already carries.
 #
@@ -203,7 +203,7 @@ version = "v0.42.0"
 [[tool]]
 name    = "varve-serve"
 repo    = "pulseengine/varve"
-version = "v0.42.0"
+version = "v0.43.0"
 
 # jess is a HUB: its v0.7.2 RELEASE ships `with-device` at payload version
 # 0.2.2, so the release tag and the payload's own version are different
@@ -290,8 +290,8 @@ asset   = "spar-aadl-%P-%V.vsix"
 [[crate]]
 name    = "varve-core"
 repo    = "pulseengine/varve"
-version = "0.42.0"
-release = "v0.42.0"
+version = "0.43.0"
+release = "v0.43.0"
 
 # ── documentation (kind = "docs") ───────────────────────────────────────────
 # The API documentation for the crate above, and `documents` is what ties the
@@ -308,8 +308,8 @@ release = "v0.42.0"
 [[docs]]
 name      = "varve-core-api"
 repo      = "pulseengine/varve"
-version   = "0.42.0"
-release   = "v0.42.0"
+version   = "0.43.0"
+release   = "v0.43.0"
 format    = "rustdoc"
 entry     = "varve_core/index.html"
 title     = "varve-core API"
