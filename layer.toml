@@ -74,7 +74,16 @@
 # nothing this realm must avoid: its provenance change affects only upstreams
 # that attest per asset, and every payload here is ingested from a
 # cosign-signed SHA256SUMS.
-version = "v0.41.0"
+#
+# v0.43.0, not v0.41.0: the SBOM a deposit attaches now names each payload's
+# supplier and license and links the upstream's own SBOM, each from a signed
+# statement (varve REQ-SBOMFIELDS-001). It also ships `varve-producer
+# advisories`, which turned 28 advisories against this realm's 2026.10 line into
+# a prepared line-status (pulseengine-layers#32) and is what the scheduled
+# watch will run (varve REQ-ADVISORYWATCH-002); and v0.42.0's opt-in reasons
+# split into measured/accepted/exit. Measured 2026-10-27: the v0.43.0 `plan`
+# accepts this file unchanged.
+version = "v0.43.0"
 
 [realm]
 name    = "pulseengine"
