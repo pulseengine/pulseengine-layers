@@ -111,7 +111,7 @@ version = "v0.41.1"
 
 [[tool]]
 name    = "spar"
-version = "v0.47.0"
+version = "v0.47.1"
 
 [[tool]]
 name    = "synth"
@@ -284,7 +284,7 @@ asset   = "rivet-sdlc-%V.vsix"
 [[vsix]]
 name    = "spar-aadl"
 repo    = "pulseengine/spar"
-version = "v0.47.0"
+version = "v0.47.1"
 asset   = "spar-aadl-%P-%V.vsix"
 
 # ── crates (kind = "crate") ─────────────────────────────────────────────────
