@@ -98,7 +98,7 @@ registry = "oci://ghcr.io/pulseengine/layers"
 # non-PulseEngine upstream be expressed, which is what varve's second
 # ingestion mechanism exists for (varve REQ-INGEST-001).
 #
-# `binary` is optional and defaults to <name>; kiln ships its CLI as `kilnd`.
+# `binary` is optional and defaults to <name>.
 #
 # The versions below are the contents of the live rolling layer 2026.09.1
 # (read back from ghcr.io/pulseengine/varve/layers), so the first deposit made
@@ -166,10 +166,20 @@ version = "v0.65.1"
 [tool.asset-for]
 "x86_64-unknown-linux-gnu"  = "meld-%R-x86_64-unknown-linux-musl.tar.gz"
 "aarch64-unknown-linux-gnu" = "meld-%R-aarch64-unknown-linux-musl.tar.gz"
+# kiln v0.6.0 renamed its CLI from `kilnd` to `kiln` (kiln#524), and the
+# archive carries BOTH binaries. `kiln` is the tool; `kilnd` is the deprecated
+# alias, kept dispatchable for one layer cycle so jess (jess#287) keeps
+# working. Drop the `kilnd` entry when kiln moves to v0.7.0, which removes the
+# alias (this repo#34, varve#258).
 [[tool]]
 name    = "kiln"
 version = "v0.6.0"
-binary  = "kilnd"
+
+[[tool]]
+name    = "kilnd"
+version = "v0.6.0"
+repo    = "pulseengine/kiln"
+asset   = "kiln-%R-%T.tar.gz"
 
 # The assembler rides in the layer like any other tool, so the NEXT deposit
 # can pin an assembler this realm has signed rather than one fetched ad hoc.
