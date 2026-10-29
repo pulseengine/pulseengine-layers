@@ -11,7 +11,14 @@ Run: python3 -m unittest discover -s tools -p 'test_*.py'
 """
 import importlib.util
 import pathlib
-import tomllib
+import sys
+try:
+    import tomllib
+except ModuleNotFoundError:  # Python < 3.11, e.g. macOS /usr/bin/python3 (3.9)
+    try:
+        import tomli as tomllib
+    except ModuleNotFoundError:
+        sys.exit("test_check_manifest.py: needs Python 3.11+ (tomllib) or the tomli package")
 import unittest
 
 spec = importlib.util.spec_from_file_location(
