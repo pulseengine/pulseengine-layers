@@ -156,7 +156,7 @@ version = "v1.4.1"
 
 [[tool]]
 name    = "meld"
-version = "v0.65.1"
+version = "v0.66.0"
 
 # Ingested from the STATIC MUSL asset. The key is still the gnu triple because
 # `host_platform()` resolves every Linux host to `{arch}-unknown-linux-gnu`; a
@@ -257,7 +257,7 @@ asset   = "with-device-%V-%T.tar.gz"
 [[tool]]
 name    = "wsc"
 repo    = "pulseengine/sigil"
-version = "v0.11.0"
+version = "v0.12.0"
 layout  = "raw-per-platform"
 # sigil names these `wsc-<os>-<arch>` -- OS first. Neither %T
 # (aarch64-apple-darwin) nor %U (aarch64-macos) produces that order, so the
