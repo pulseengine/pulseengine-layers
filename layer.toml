@@ -96,7 +96,12 @@
 # no roles, so it is unchanged. varve-serve says when a harvest could not
 # finish instead of caching it as "no help". Measured 2026-11-06: the
 # v0.45.0 `plan` accepts this file with only the version lines changed.
-version = "v0.45.0"
+# v0.46.0, not v0.45.0: VARVE_REGISTRY_AUTH goes only to the pinned realm's
+# registry origin, a mirror cannot pass against less than the primary proved
+# earlier in the same run, and the producer reads back what it writes.
+# Measured 2026-11-08: the v0.46.0 `plan` accepts this file with only the
+# version line changed.
+version = "v0.46.0"
 
 [realm]
 name    = "pulseengine"
