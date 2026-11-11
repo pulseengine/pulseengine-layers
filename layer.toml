@@ -129,7 +129,7 @@ version = "v0.41.1"
 
 [[tool]]
 name    = "spar"
-version = "v0.48.2"
+version = "v0.49.0"
 
 [[tool]]
 name    = "synth"
@@ -300,7 +300,7 @@ layout  = "raw-per-platform"
 # platform's payload as unbuilt and deposits the three that exist.
 [[tool]]
 name    = "warte"
-version = "v1.6.7"
+version = "v1.6.10"
 layout  = "raw-per-platform"
 platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
 [tool.asset-for]
@@ -321,7 +321,7 @@ asset   = "rivet-sdlc-%V.vsix"
 [[vsix]]
 name    = "spar-aadl"
 repo    = "pulseengine/spar"
-version = "v0.48.2"
+version = "v0.49.0"
 asset   = "spar-aadl-%P-%V.vsix"
 
 # ── crates (kind = "crate") ─────────────────────────────────────────────────
