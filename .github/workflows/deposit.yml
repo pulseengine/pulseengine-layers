@@ -36,13 +36,15 @@ on:
         type: string
 
 permissions:
-  # `write`, because the line-index document is COMMITTED here and each
-  # deposit appends the layer it just pushed (varve DD-027). The list
-  # cannot come from the registry: the index exists to detect a registry
-  # HIDING a layer, and a hiding registry would omit it from the tag
-  # listing and therefore from the index, so the two would agree and
-  # nothing would be reported.
-  contents: write
+  # `read`, no longer `write`. The line-index document is still COMMITTED
+  # here and each deposit still appends the layer it just pushed (varve
+  # DD-027), but it arrives as a signed pull request made with the org's
+  # GitHub App token, not as a push with this one. The list cannot come
+  # from the registry: the index exists to detect a registry HIDING a
+  # layer, and a hiding registry would omit it from the tag listing and
+  # therefore from the index, so the two would agree and nothing would be
+  # reported.
+  contents: read
   packages: write
 
 jobs:
@@ -51,6 +53,28 @@ jobs:
     timeout-minutes: 60
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      # BEFORE ANYTHING IS PUBLISHED. The index proposal at the end needs the
+      # App token, and a deposit that pushed a layer and then could not
+      # propose its index entry leaves a published layer the committed index
+      # does not name. So prove the App can mint for this repository first,
+      # and stop here, with nothing pushed, if it cannot. The token used at
+      # the end is minted again there: installation tokens last an hour and a
+      # deposit can take most of one.
+      - name: Name this repository for the App token
+        id: self
+        run: echo "repo-name=${GITHUB_REPOSITORY#*/}" >> "$GITHUB_OUTPUT"
+
+      - name: Prove the App token can be minted (nothing is published yet)
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          # `app-id`, not `client-id`: see scan-and-propose.yml.
+          app-id: ${{ secrets.ACTIONS_BOT_APP_ID }}
+          private-key: ${{ secrets.ACTIONS_BOT_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ steps.self.outputs.repo-name }}
+          permission-contents: write
+          permission-pull-requests: write
 
       - name: Install cosign
         uses: sigstore/cosign-installer@756fe2d284c7292c4e9b62c8a28f1e5629c59532 # v4.1.3
@@ -434,18 +458,36 @@ jobs:
       # ever written one, so every guarantee resting on it — omission
       # detection, `varve outdated` — was reasoning about a document that did
       # not exist.
-      - name: Append this layer to the line index, sign it, and publish it
+      #
+      # PROPOSED, NOT PUSHED, AND PUBLISHED ON MERGE. This step used to commit
+      # the document, `git push origin HEAD:main`, and then sign and publish
+      # it. The rule it kept was "commit BEFORE publishing: a published index
+      # whose document is not in main is one nobody can review or append to
+      # next time". A pull request keeps that rule only if publishing waits for
+      # the merge, so signing and publishing moved to publish-line-index.yml,
+      # which runs when the document changes on main (and daily) and reads the
+      # result back as a consumer does. As in wasm-layers.
+      - name: Mint the App token for the index proposal
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          # `app-id`, not `client-id`: see scan-and-propose.yml.
+          app-id: ${{ secrets.ACTIONS_BOT_APP_ID }}
+          private-key: ${{ secrets.ACTIONS_BOT_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ steps.self.outputs.repo-name }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      - name: Propose this layer for the line index, as a signed pull request
         env:
-          VARVE_ROLLING_KEY: ${{ secrets.VARVE_ROLLING_KEY }}
-          GH_TOKEN: ${{ github.token }}
+          GH_TOKEN: ${{ steps.app.outputs.token }}
           LAYER: ${{ inputs.layer }}
           COUNTER: ${{ inputs.counter }}
           CHANNEL: ${{ steps.pins.outputs.channel }}
-          REPO: ${{ steps.pins.outputs.repo }}
         shell: bash
         run: |
           set -euo pipefail
-          VARVE=.varve/bin/varve
           LINE="${LAYER%.*}"
           DOC="line-index/$LINE.json"
           ISSUED_AT="$(date -u +%Y-%m-%dT%H:%M:%SZ)"
@@ -461,66 +503,88 @@ jobs:
             layer-layout/index.json)
           test -n "$PAYLOAD_DIGEST" || { echo "::error::no payload digest in the layout"; exit 1; }
 
+          # Start from main AS IT IS NOW, not as it was checked out up to an
+          # hour ago: the old step rebased before pushing for the same reason.
+          git fetch --quiet origin main
+          BASE="$(git rev-parse origin/main)"
+          if git cat-file -e "$BASE:$DOC" 2>/dev/null; then
+            git show "$BASE:$DOC" > "$DOC"
+          else
+            rm -f "$DOC"
+          fi
+
+          # FOLD IN what earlier index proposals for this line carry. While a
+          # proposal waits for its merge, the next deposit would otherwise
+          # append to a main that lacks it, and the two pull requests would
+          # each omit the other's layer. Every entry an open proposal names is
+          # appended here first (append-index.py is idempotent, and refuses one
+          # layer id under two digests), so this proposal names them all and
+          # the older ones are closed as superseded below.
+          OPEN="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --json number,headRefName \
+            | jq -r --arg p "line-index/$LINE." \
+              '[.[] | select(.headRefName | startswith($p))] | sort_by(.number) | .[] | "\(.number)\t\(.headRefName)"')"
+          while IFS="$(printf '\t')" read -r NUM REF; do
+            [ -n "$NUM" ] || continue
+            gh api "repos/$GITHUB_REPOSITORY/contents/$DOC?ref=$REF" --jq .content | base64 -d > pending.json
+            jq -r '.layers[] | [.layer, .digest, .channel, (.counter|tostring)] | @tsv' pending.json \
+              | while IFS="$(printf '\t')" read -r L D C N; do
+                  python3 tools/append-index.py --file "$DOC" \
+                    --layer "$L" --digest "$D" --channel "$C" --counter "$N" --issued-at "$ISSUED_AT"
+                done
+            echo "::notice::folded in what #$NUM proposes"
+          done <<< "$OPEN"
+
           python3 tools/append-index.py --file "$DOC" \
             --layer "$LAYER" --digest "$PAYLOAD_DIGEST" \
             --channel "$CHANNEL" --counter "$COUNTER" --issued-at "$ISSUED_AT"
 
-          # Commit BEFORE publishing. A published index whose document is not in
-          # main is one nobody can review or append to next time, and the
-          # document is the artifact of record here — the registry copy is a
-          # distribution of it.
-          if ! git diff --quiet -- "$DOC" || [ -n "$(git status --porcelain -- "$DOC")" ]; then
-            git config user.name  "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add "$DOC"
-            git commit -m "$(printf 'Line %s index names %s\n\nAppended by the deposit that pushed it. The list is committed here and\nnever read from the registry: an index derived from the listing it is meant\nto check would agree with a registry that hides a layer (varve DD-027).' "$LINE" "$LAYER")"
-            # The scanner commits layer.toml on its own schedule, so rebase
-            # rather than assume this branch is still at the tip.
-            git pull --rebase --quiet origin main
-            git push origin HEAD:main
-          else
-            echo "::notice::$DOC already names $LAYER — nothing to commit"
+          # Compared with main as fetched above, not with the checkout.
+          if git cat-file -e "$BASE:$DOC" 2>/dev/null && git show "$BASE:$DOC" | cmp -s - "$DOC"; then
+            echo "::notice::$DOC on main already names $LAYER — nothing to propose"
+            exit 0
           fi
 
-          # Sign with the realm root. The key reaches varve through a FILE
-          # DESCRIPTOR, never a file (varve REQ-NOKEYDISK-001).
-          test -n "$VARVE_ROLLING_KEY" || { echo "::error::VARVE_ROLLING_KEY not provisioned"; exit 1; }
-          "$VARVE" sign-index --file "$DOC" \
-            --key <(printf '%s' "$VARVE_ROLLING_KEY") --key-id varve-rolling-1 \
-            --out line-index.dsse.json
-
-          # The manifest shape is copied from `varve docs attach-index`, not
-          # re-derived: it is what RegistrySource looks for, and a role
-          # annotation spelled differently reads as no index at all.
-          oras login ghcr.io -u "$GITHUB_ACTOR" --password-stdin <<< "$GH_TOKEN"
-          oras blob push "$REPO" line-index.dsse.json
+          # A SIGNED commit, made by GitHub. `git commit` on the runner is
+          # unsigned, and temper's default ruleset requires signatures on main.
+          # `createCommitOnBranch` yields a commit GitHub signs; checked below,
+          # not assumed.
+          # Unique per run attempt: a re-run after a failure further down must
+          # not stop on "reference already exists". Still under the
+          # `line-index/<line>.` prefix the fold above looks for.
+          BRANCH="line-index/$LAYER-run$GITHUB_RUN_ID.$GITHUB_RUN_ATTEMPT"
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$BASE" > /dev/null
           jq -n \
-            --arg d "sha256:$(sha256sum line-index.dsse.json | cut -d' ' -f1)" \
-            --argjson s "$(wc -c < line-index.dsse.json)" \
-            '{
-              schemaVersion: 2,
-              mediaType: "application/vnd.oci.image.manifest.v1+json",
-              artifactType: "application/vnd.pulseengine.varve.line-index.v1+json",
-              config: { mediaType: "application/vnd.oci.empty.v1+json",
-                        digest: "sha256:44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a",
-                        size: 2 },
-              layers: [ { mediaType: "application/json", digest: $d, size: $s,
-                          annotations: {"eu.pulseengine.varve.role": "line-index"} } ]
-            }' > line-index-manifest.json
-          oras manifest push "$REPO:line-index-$LINE" line-index-manifest.json
-          echo "::notice::published line-index-$LINE naming $(jq '.layers | length' "$DOC") layer(s)"
+            --arg repo "$GITHUB_REPOSITORY" --arg branch "$BRANCH" --arg oid "$BASE" \
+            --arg head "Line $LINE index names $LAYER" \
+            --arg body "Appended by the deposit that pushed $LAYER. The list is committed here and never read from the registry: an index derived from the listing it is meant to check would agree with a registry that hides a layer (varve DD-027)." \
+            --arg path "$DOC" --arg contents "$(base64 -w0 "$DOC")" \
+            '{query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }",
+              variables: {input: {
+                branch: {repositoryNameWithOwner: $repo, branchName: $branch},
+                expectedHeadOid: $oid,
+                message: {headline: $head, body: $body},
+                fileChanges: {additions: [{path: $path, contents: $contents}]}}}}' \
+            | gh api graphql --input - > index-commit.json
+          OID="$(jq -r '.data.createCommitOnBranch.commit.oid' index-commit.json)"
+          test -n "$OID" && test "$OID" != null || { cat index-commit.json; exit 1; }
+          test "$(gh api "repos/$GITHUB_REPOSITORY/commits/$OID" --jq '.commit.verification.verified')" = true || {
+            echo "::error::the index commit $OID is not signed; a ruleset requiring signatures would refuse it"; exit 1; }
 
-          # The gate on the whole step: read it back the way a CONSUMER does
-          # and require this layer to be in it. A signature over a document
-          # nobody can fetch is the failure this step exists to end, and
-          # "oras said ok" is not "a consumer can read it".
-          oras manifest fetch "$REPO:line-index-$LINE" --descriptor >/dev/null
-          FETCHED="$(oras blob fetch "$REPO@$(jq -r '.layers[0].digest' line-index-manifest.json)" --output -)"
-          printf '%s' "$FETCHED" | jq -e --arg l "$LAYER" \
-            '(.payload | @base64d | fromjson).layers | map(.layer) | index($l) != null' \
-            >/dev/null \
-            || { echo "::error::the published index does not name $LAYER"; exit 1; }
-          echo "::notice::read back: the published index names $LAYER"
+          # The backticks are Markdown for the pull request body, not expansions.
+          # shellcheck disable=SC2016
+          PR_BODY="$(printf 'The deposit of **%s** published the layer; this adds it to the committed line index for **%s** (`%s`, index #%s).\n\n**Merging this publishes the signed index** (publish-line-index.yml), which is what lets `varve outdated` tell consumers that %s exists, and lets them notice a registry that hides it (varve DD-027).\n\nAuto-merge is armed only when an active ruleset requires `check` on main; otherwise this waits for a human (see the run summary).' "$LAYER" "$LINE" "$DOC" "$(jq .counter "$DOC")" "$LAYER")"
+          PR_URL="$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" \
+            --title "Line $LINE index names $LAYER" --body "$PR_BODY")"
+          NEW="${PR_URL##*/}"
+          echo "::notice::proposed #$NEW: $DOC naming $LAYER — publish-line-index.yml signs and publishes it on merge"
+
+          while IFS="$(printf '\t')" read -r NUM REF; do
+            [ -n "$NUM" ] || continue
+            gh pr close "$NUM" --repo "$GITHUB_REPOSITORY" --delete-branch \
+              --comment "Superseded by #$NEW, which names every layer this one did." || true
+          done <<< "$OPEN"
+
+          tools/arm-auto-merge.sh "$NEW"
 
       - name: Upload the oci-layout (artifact of record)
         uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2

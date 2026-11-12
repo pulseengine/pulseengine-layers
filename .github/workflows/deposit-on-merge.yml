@@ -1,0 +1,81 @@
+name: Deposit on merge
+
+# THE OTHER HALF OF THE SCANNER.
+#
+# scan-and-propose.yml opens a "Pins moved upstream" pull request, and auto-merge
+# (or a person) merges it once `check` passes. Merging a change to layer.toml IS
+# the decision to deposit, so this acts on it with nobody pressing a button.
+#
+# This used to be the tail of the scanner itself (scan-and-deposit.yml), in the
+# same run that pushed the bump to main. It is the same two steps, unchanged:
+# the layer id and counter are derived from the published record, never typed,
+# because a layer id once spent cannot be reused — varve has neither revocation
+# nor deletion.
+#
+# ONE BEHAVIOUR CHANGE, deliberate and the same as covalent-layers: ANY merge
+# that changes layer.toml deposits, not only a scanner proposal. A human edit
+# to layer.toml (a varve bump, say) used to sit on main undeposited until the
+# next upstream move happened to trigger the scanner; now it deposits when it
+# merges. main and the newest layer stop disagreeing.
+on:
+  push:
+    branches: [main]
+    # ONLY layer.toml. The deposit itself proposes `line-index/<line>.json`
+    # back to main, and a filter that included it would re-trigger this
+    # workflow from its own output, forever.
+    paths:
+      - layer.toml
+
+permissions:
+  contents: read
+  actions: write
+
+concurrency:
+  # One at a time, and never cancelled mid-dispatch. Two concurrent runs would
+  # both read the same published record, both derive the same next id, and
+  # both dispatch it — the exact collision `next-layer-id.sh` refuses one at a
+  # time but cannot see across runs. (deposit.yml then serialises per layer id,
+  # and `publish-check` refuses a second set of bytes under one id.)
+  group: deposit-on-merge
+  cancel-in-progress: false
+
+jobs:
+  deposit:
+    name: the merge was the decision; sign it
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: what layer id and counter does the published record say
+        id: next
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # Derived from the registry, never guessed. Refuses outright if the
+          # registry cannot be read or the computed tag already exists — which
+          # matters more here than anywhere, because no one is reading the
+          # output before it signs.
+          OUT="$(tools/next-layer-id.sh)"
+          LAYER="$(printf '%s' "$OUT" | cut -f1)"
+          COUNTER="$(printf '%s' "$OUT" | cut -f2)"
+          test -n "$LAYER" && test -n "$COUNTER" || {
+            echo "::error::next-layer-id.sh produced no answer — refusing to deposit"
+            exit 1
+          }
+          echo "layer=$LAYER"     >> "$GITHUB_OUTPUT"
+          echo "counter=$COUNTER" >> "$GITHUB_OUTPUT"
+          echo "::notice::next layer $LAYER, counter $COUNTER"
+
+      - name: deposit
+        env:
+          # `github.token` is enough to dispatch: workflow_dispatch is the one
+          # event the default token is allowed to trigger.
+          GH_TOKEN: ${{ github.token }}
+          LAYER: ${{ steps.next.outputs.layer }}
+          COUNTER: ${{ steps.next.outputs.counter }}
+        run: |
+          set -euo pipefail
+          gh workflow run deposit.yml -f layer="$LAYER" -f counter="$COUNTER"
+          echo "::notice::dispatched deposit of $LAYER (counter $COUNTER)"

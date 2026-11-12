@@ -15,9 +15,11 @@ published on it:
 ```
 
 Each deposit appends the layer it just pushed (`tools/append-index.py`,
-`.github/workflows/deposit.yml`), signs the document with the realm root, and
-publishes the envelope under the `line-index-<line>` tag. `varve` reads it from
-there and refuses an enumeration that omits a layer the index names.
+`.github/workflows/deposit.yml`) and proposes the document as a signed pull
+request. Once it is on main, `.github/workflows/publish-line-index.yml` signs it
+with the realm root and publishes the envelope under the `line-index-<line>`
+tag. `varve` reads it from there and refuses an enumeration that omits a layer
+the index names.
 
 ## Why the list is here and not derived from `oras repo tags`
 
@@ -32,8 +34,9 @@ tests, publish real signatures, and detect nothing — the most expensive kind o
 wrong, because everyone downstream believes it. This is varve DD-027.
 
 The accepted cost is a reviewed file and a possible merge conflict when two
-deposits race; the per-layer concurrency group makes that rare, and the deposit
-rebases before pushing.
+deposits race. Each deposit starts from main as it is when it proposes, folds in
+every layer an open index proposal for the same line already names, and closes
+those proposals as superseded, so one open proposal carries them all.
 
 ## The layers published BEFORE this existed are not in here
 
