@@ -126,6 +126,9 @@ jobs:
         if: steps.scan.outputs.moved == 'true'
         env:
           GH_TOKEN: ${{ steps.app.outputs.token }}
+          # The App's own login. Only pull requests it opened are ever reused,
+          # superseded or armed (tools/arm-auto-merge.sh checks again).
+          ARM_BOT_LOGIN: ${{ steps.app.outputs.app-slug }}[bot]
         run: |
           set -euo pipefail
           BODY="$(awk -F'\t' '{printf "  %s %s %s: %s -> %s\n", $1, $2, $3, $4, $5}' moved.tsv)"
@@ -135,14 +138,25 @@ jobs:
           # new branch and pull request every 15 minutes: re-offer the existing
           # one to the auto-merge gate (which may have been switched on since)
           # and stop.
-          EXISTING="$(gh pr list --repo "$GITHUB_REPOSITORY" --state open --json number,headRefName \
-            --jq '[.[] | select(.headRefName | startswith("scanner/pins-"))] | sort_by(.number) | .[] | "\(.number)\t\(.headRefName)"')"
-          while IFS="$(printf '\t')" read -r NUM REF; do
+          #
+          # "An open proposal" means one the App opened, from a branch of this
+          # repository. A branch NAME proves nothing: anyone can open a pull
+          # request from a fork with a branch called `scanner/pins-x`, and this
+          # job holds a token that can arm auto-merge. Contents are read at the
+          # head COMMIT, never by branch name.
+          EXISTING="$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" \
+            | jq -rs --arg bot "$ARM_BOT_LOGIN" --arg repo "$GITHUB_REPOSITORY" '
+                [ .[][] | select(.user.login == $bot and .user.type == "Bot"
+                                 and .head.repo.full_name == $repo
+                                 and (.head.ref | startswith("scanner/pins-"))) ]
+                | sort_by(.number) | .[] | "\(.number)\t\(.head.sha)"')"
+          while IFS="$(printf '\t')" read -r NUM SHA; do
             [ -n "$NUM" ] || continue
-            if gh api "repos/$GITHUB_REPOSITORY/contents/layer.toml?ref=$REF" --jq .content \
+            printf '%s' "$SHA" | grep -Eqx '[0-9a-f]{40}' || continue
+            if gh api "repos/$GITHUB_REPOSITORY/contents/layer.toml?ref=$SHA" --jq .content \
                  | base64 -d | cmp -s - layer.toml; then
               echo "::notice::#$NUM already proposes exactly this layer.toml"
-              tools/arm-auto-merge.sh "$NUM"
+              tools/arm-auto-merge.sh "$NUM" "$SHA"
               exit 0
             fi
           done <<< "$EXISTING"
@@ -185,10 +199,11 @@ jobs:
           # current main and re-finds every move they carried that is still
           # unmerged. An unreviewed queue of near-identical PRs is how a gate
           # stops being looked at.
-          while IFS="$(printf '\t')" read -r NUM REF; do
+          while IFS="$(printf '\t')" read -r NUM _; do
             [ -n "$NUM" ] || continue
             gh pr close "$NUM" --repo "$GITHUB_REPOSITORY" --delete-branch \
               --comment "Superseded by #$NEW, a newer scan." || true
           done <<< "$EXISTING"
 
-          tools/arm-auto-merge.sh "$NEW"
+          # Armed at the commit made above, and nothing later.
+          tools/arm-auto-merge.sh "$NEW" "$OID"

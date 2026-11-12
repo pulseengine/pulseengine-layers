@@ -19,14 +19,24 @@
 # arming on a guess is the one outcome this must never produce. A PR left open
 # costs a human a click; a PR merged unchecked costs a signed layer.
 #
-# Usage:  tools/arm-auto-merge.sh <pr-number>
-# Needs:  GH_TOKEN (a token that can merge PRs), GITHUB_REPOSITORY.
+# It also refuses unless the pull request is the bot's own: opened by the App
+# (ARM_BOT_LOGIN, e.g. `my-app[bot]`), from a branch of THIS repository, still
+# open against the branch, and with its head at exactly the commit the caller
+# made or inspected. A branch name proves nothing (anyone can open a pull
+# request from a fork with a branch called `scanner/pins-x`), and auto-merge is
+# armed with --match-head-commit so a later push cannot ride the armed merge.
+#
+# Usage:  tools/arm-auto-merge.sh <pr-number> <head-commit-sha>
+# Needs:  GH_TOKEN (a token that can merge PRs), GITHUB_REPOSITORY,
+#         ARM_BOT_LOGIN (the App's bot login).
 # Writes: a line to $GITHUB_STEP_SUMMARY either way.
 
 set -euo pipefail
 
-PR="${1:?usage: arm-auto-merge.sh <pr-number>}"
+PR="${1:?usage: arm-auto-merge.sh <pr-number> <head-commit-sha>}"
+HEAD_OID="${2:?usage: arm-auto-merge.sh <pr-number> <head-commit-sha>}"
 REPO="${GITHUB_REPOSITORY:?GITHUB_REPOSITORY is not set}"
+BOT="${ARM_BOT_LOGIN:?ARM_BOT_LOGIN is not set}"
 BRANCH="${ARM_BRANCH:-main}"
 CHECK_YML="${CHECK_YML:-.github/workflows/check.yml}"
 SUMMARY="${GITHUB_STEP_SUMMARY:-/dev/stderr}"
@@ -36,6 +46,22 @@ leave_for_human() {
   echo "- #$PR was **not** armed for auto-merge: $1. **A human must merge it.**" >> "$SUMMARY"
   exit 0
 }
+
+# ── 0. is this the bot's own pull request, at the commit the caller means? ──
+case "$PR" in ''|*[!0-9]*) leave_for_human "\"$PR\" is not a pull request number" ;; esac
+printf '%s' "$HEAD_OID" | grep -Eqx '[0-9a-f]{40}' \
+  || leave_for_human "\"$HEAD_OID\" is not a full commit sha"
+PRJSON="$(gh api "repos/$REPO/pulls/$PR" 2>/dev/null)" \
+  || leave_for_human "could not read pull request #$PR"
+WHY="$(printf '%s' "$PRJSON" | jq -r --arg bot "$BOT" --arg repo "$REPO" \
+         --arg oid "$HEAD_OID" --arg base "$BRANCH" '
+  if .state != "open" then "it is not open"
+  elif .user.login != $bot or .user.type != "Bot" then "it was opened by \(.user.login) (\(.user.type)), not the App \($bot)"
+  elif .head.repo.full_name != $repo then "its head is not a branch of \($repo)"
+  elif .base.ref != $base then "it targets \(.base.ref), not \($base)"
+  elif .head.sha != $oid then "its head moved to \(.head.sha), not the inspected \($oid)"
+  else "" end' 2>/dev/null)" || leave_for_human "could not parse pull request #$PR"
+[ -z "$WHY" ] || leave_for_human "$WHY"
 
 # ── the context name, read from check.yml rather than typed here ─────────────
 # The `name:` of the `check:` job is the status-check context GitHub reports
@@ -89,6 +115,6 @@ done
 # ── both hold: arm it ────────────────────────────────────────────────────────
 # Squash: one signed commit per change on main, the shape main had when these
 # bots pushed directly. GitHub makes and signs the merge commit.
-gh pr merge "$PR" --repo "$REPO" --auto --squash
+gh pr merge "$PR" --repo "$REPO" --auto --squash --match-head-commit "$HEAD_OID"
 echo "::notice::#$PR armed for auto-merge: ruleset $REQUIRED_BY requires \"$CONTEXT\" on $BRANCH"
 echo "- #$PR armed for auto-merge. It merges once \`$CONTEXT\` passes (required by ruleset $REQUIRED_BY)." >> "$SUMMARY"
