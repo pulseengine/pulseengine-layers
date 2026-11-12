@@ -174,7 +174,7 @@ version = "v1.5.2"
 
 [[tool]]
 name    = "meld"
-version = "v0.67.0"
+version = "v0.68.0"
 
 # Ingested from the STATIC MUSL asset. The key is still the gnu triple because
 # `host_platform()` resolves every Linux host to `{arch}-unknown-linux-gnu`; a
@@ -300,7 +300,7 @@ layout  = "raw-per-platform"
 # platform's payload as unbuilt and deposits the three that exist.
 [[tool]]
 name    = "warte"
-version = "v1.6.21"
+version = "v1.6.23"
 layout  = "raw-per-platform"
 platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
 [tool.asset-for]
