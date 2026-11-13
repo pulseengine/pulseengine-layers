@@ -1,0 +1,63 @@
+name: app-token-probe
+
+# Can the org's GitHub App mint a token for THIS repository?
+#
+# scan-and-propose.yml and deposit.yml open their pull requests with that App,
+# because a pull request opened with `github.token` does not trigger `check`.
+# If the App is not installed here, both stop with a mint error. This shows the
+# answer on every pull request, before a bot ever needs it, and writes nothing.
+#
+# Separate from check.yml on purpose: `check` is the status check a ruleset is
+# meant to require, and whether the App is installed is a question about the
+# org's settings, not about the change under review.
+#
+# Reading a failure (see pulseengine/relay's pr-branch-keeper.yml, where this
+# was measured): a 404 on `get-a-repository-installation` means the credentials
+# AUTHENTICATED and the App is simply not installed on this repository, which
+# an org owner fixes by adding the repository to the App. A 401 means
+# ACTIONS_BOT_APP_ID or ACTIONS_BOT_PRIVATE_KEY is wrong.
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  probe:
+    name: the org App can mint a token for this repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Name this repository
+        id: self
+        run: echo "repo-name=${GITHUB_REPOSITORY#*/}" >> "$GITHUB_OUTPUT"
+
+      # No continue-on-error: a mint that fails is the finding, and it fails
+      # this job with the HTTP status in the log.
+      - name: Mint a read-only App token
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          # `app-id` is deprecated in favour of `client-id`, and NOT swapped:
+          # `client-id` wants the App's CLIENT ID, a different value from the
+          # app id this secret holds (as relay notes).
+          app-id: ${{ secrets.ACTIONS_BOT_APP_ID }}
+          private-key: ${{ secrets.ACTIONS_BOT_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ steps.self.outputs.repo-name }}
+          permission-contents: read
+
+      - name: Which repositories does the token reach
+        env:
+          # Bound to env and never echoed.
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          set -euo pipefail
+          gh api /installation/repositories --jq '.repositories[].full_name' | tee repos.txt
+          grep -qx "$GITHUB_REPOSITORY" repos.txt || {
+            echo "::error::the App token minted but does not reach $GITHUB_REPOSITORY"
+            exit 1
+          }
+          echo "::notice::the org App mints a token for $GITHUB_REPOSITORY"

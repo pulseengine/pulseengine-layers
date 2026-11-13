@@ -1,0 +1,209 @@
+name: Scan upstream and propose
+
+# Every 15 minutes: ask each pinned tool's repository for its latest release,
+# and if any moved, bump layer.toml and OPEN A PULL REQUEST. It does not push
+# to main and it does not deposit. Merging the pull request is what deposits
+# (deposit-on-merge.yml).
+#
+# STILL NO PERSON IN THE LOOP, ONCE THE GATE EXISTS. This realm is rolling: an
+# upstream release becomes a signed, published layer without anyone choosing
+# it. That is unchanged. What changed is the path. This workflow used to push
+# the bump straight to main and dispatch the deposit in the same run, so the
+# `check` job ran on main AFTER the layer it was checking was already being
+# signed. Now the bump is a pull request opened with the org's GitHub App
+# token (a pull request opened with `github.token` does not trigger `check` at
+# all), and auto-merge lands it once `check` passes. `tools/arm-auto-merge.sh`
+# arms auto-merge ONLY when an active ruleset makes `check` required on main;
+# on an unprotected branch auto-merge would merge at once, unchecked, so there
+# the pull request waits for a human instead.
+#
+# A layer id, once spent, cannot be reused: varve has no revocation and no
+# deletion. A wrong upstream release is corrected by depositing another layer
+# and yanking this one, never by taking it back.
+#
+# The controls that survive without a human, and that this depends on:
+#
+#   * `check` (the manifest parses and the scanner's rules hold) runs on the
+#     proposal and must pass before it can merge.
+#   * `next-layer-id.sh` derives the id and counter from the PUBLISHED record
+#     and refuses if the registry cannot be read or the tag already exists. It
+#     never guesses. (deposit-on-merge.yml)
+#   * `varve-producer deposit` verifies every upstream release against its own
+#     repository's cosign identity before staging a byte.
+#   * the deposit sanity-installs and VERIFIES the layer against the realm's
+#     published root before anything is pushed.
+#   * `publish-check` refuses to replace a published id with different bytes.
+#   * `scan-pins.py` fails loud: a repository it cannot query is an error, never
+#     "nothing moved". A silent scanner would freeze the realm while looking
+#     healthy, which is worse than a noisy one.
+#
+# What is NOT protected is the judgement a person was making: whether this
+# particular upstream release should be in the toolchain at all.
+
+concurrency:
+  # One scan at a time. The deposit no longer runs from here, so the old reason
+  # (two runs deriving the same next layer id and both publishing it) has moved
+  # to deposit-on-merge.yml, which carries its own group. What remains: two
+  # overlapping scans would both open a proposal and close each other's.
+  group: scan-and-propose
+  cancel-in-progress: false
+
+on:
+  schedule:
+    # Every 15 minutes, offset off the quarter hour: on-the-quarter crons queue
+    # behind everyone else's.
+    - cron: "7,22,37,52 * * * *"
+  workflow_dispatch:
+
+# `github.token` only READS now: the scan asks public repositories for their
+# releases. Every write (the branch, the signed commit, the pull request, the
+# auto-merge) is made with the App token minted below, so the pull request's
+# own workflows run. No `actions: write`: nothing here dispatches a workflow.
+permissions:
+  contents: read
+
+jobs:
+  scan:
+    name: what moved upstream
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: ask every pinned repository for its latest release, and bump what moved
+        id: scan
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          # The App token is scoped to this repository by NAME. Taken from
+          # GITHUB_REPOSITORY, not `github.event.repository.name`: a scheduled
+          # run's event carries no repository, and an empty `repositories`
+          # input mints a token for EVERY repository the App is installed on.
+          echo "repo-name=${GITHUB_REPOSITORY#*/}" >> "$GITHUB_OUTPUT"
+          # ONE reader and ONE writer of layer.toml. The rewrite used to live
+          # here as an inline heredoc that knew only about `[[tool]]`, while the
+          # scanner read the manifest — two places deciding which sections
+          # exist, and the drift was only visible in a signed layer. It scanned
+          # `[[tool]]` alone, so the `[[crate]]` and `[[docs]]` entries this
+          # realm now carries would have frozen at 0.36.0 with nothing saying
+          # so; and it compared `version` against the latest tag, so the hub
+          # payload `with-device` (0.2.2 from release v0.7.2) was "moved" on
+          # every scan and would have been signed as version v0.7.2.
+          python3 tools/scan-pins.py --apply > moved.tsv
+          if [ -s moved.tsv ]; then
+            echo "moved=true" >> "$GITHUB_OUTPUT"
+            echo "::notice::$(wc -l < moved.tsv | tr -d ' ') pin(s) moved upstream"
+            cat moved.tsv
+          else
+            echo "moved=false" >> "$GITHUB_OUTPUT"
+            echo "nothing moved"
+          fi
+
+      # The org's GitHub App, scoped to THIS repository and to the two
+      # permissions the proposal needs. Not `github.token`: a pull request that
+      # token opens does not trigger `check`, so a required `check` would block
+      # every proposal forever. No continue-on-error and no fallback to
+      # `github.token`: a proposal whose check cannot run is not a proposal.
+      - name: mint the App token that opens the proposal
+        if: steps.scan.outputs.moved == 'true'
+        id: app
+        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        with:
+          # `app-id` is deprecated in favour of `client-id`, and NOT swapped
+          # here on purpose: `client-id` wants the App's CLIENT ID, a different
+          # value from the app id this secret holds. Renaming the key without
+          # changing the secret turns a working mint into a 401 (as relay notes).
+          app-id: ${{ secrets.ACTIONS_BOT_APP_ID }}
+          private-key: ${{ secrets.ACTIONS_BOT_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: ${{ steps.scan.outputs.repo-name }}
+          permission-contents: write
+          permission-pull-requests: write
+
+      # A PULL REQUEST, never a push to main.
+      - name: propose it
+        if: steps.scan.outputs.moved == 'true'
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+          # The App's own login. Only pull requests it opened are ever reused,
+          # superseded or armed (tools/arm-auto-merge.sh checks again).
+          ARM_BOT_LOGIN: ${{ steps.app.outputs.app-slug }}[bot]
+        run: |
+          set -euo pipefail
+          BODY="$(awk -F'\t' '{printf "  %s %s %s: %s -> %s\n", $1, $2, $3, $4, $5}' moved.tsv)"
+
+          # The same move is found on every tick until it merges. If an open
+          # proposal already carries exactly this layer.toml, do not churn a
+          # new branch and pull request every 15 minutes: re-offer the existing
+          # one to the auto-merge gate (which may have been switched on since)
+          # and stop.
+          #
+          # "An open proposal" means one the App opened, from a branch of this
+          # repository. A branch NAME proves nothing: anyone can open a pull
+          # request from a fork with a branch called `scanner/pins-x`, and this
+          # job holds a token that can arm auto-merge. Contents are read at the
+          # head COMMIT, never by branch name.
+          EXISTING="$(gh api --paginate "repos/$GITHUB_REPOSITORY/pulls?state=open&per_page=100" \
+            | jq -rs --arg bot "$ARM_BOT_LOGIN" --arg repo "$GITHUB_REPOSITORY" '
+                [ .[][] | select(.user.login == $bot and .user.type == "Bot"
+                                 and .head.repo.full_name == $repo
+                                 and (.head.ref | startswith("scanner/pins-"))) ]
+                | sort_by(.number) | .[] | "\(.number)\t\(.head.sha)"')"
+          while IFS="$(printf '\t')" read -r NUM SHA; do
+            [ -n "$NUM" ] || continue
+            printf '%s' "$SHA" | grep -Eqx '[0-9a-f]{40}' || continue
+            if gh api "repos/$GITHUB_REPOSITORY/contents/layer.toml?ref=$SHA" --jq .content \
+                 | base64 -d | cmp -s - layer.toml; then
+              echo "::notice::#$NUM already proposes exactly this layer.toml"
+              tools/arm-auto-merge.sh "$NUM" "$SHA"
+              exit 0
+            fi
+          done <<< "$EXISTING"
+
+          # A SIGNED commit, made by GitHub. `git commit` on the runner is
+          # unsigned, and temper's default ruleset requires signatures on main.
+          # `createCommitOnBranch` yields a commit GitHub signs; checked below
+          # rather than assumed.
+          BRANCH="scanner/pins-$(date -u +%Y%m%d-%H%M%S)"
+          BASE="$(git rev-parse HEAD)"
+          gh api "repos/$GITHUB_REPOSITORY/git/refs" -f ref="refs/heads/$BRANCH" -f sha="$BASE" > /dev/null
+          MSG="$(printf '%s\n\nProposed by the 15-minute scanner. No person chose these versions; the\nscanner reports what upstream published, and merging this deposits what\nthe manifest names.' "$BODY")"
+          jq -n \
+            --arg repo "$GITHUB_REPOSITORY" --arg branch "$BRANCH" --arg oid "$BASE" \
+            --arg body "$MSG" --arg contents "$(base64 -w0 layer.toml)" \
+            '{query: "mutation($input: CreateCommitOnBranchInput!) { createCommitOnBranch(input: $input) { commit { oid } } }",
+              variables: {input: {
+                branch: {repositoryNameWithOwner: $repo, branchName: $branch},
+                expectedHeadOid: $oid,
+                message: {headline: "Pins moved upstream", body: $body},
+                fileChanges: {additions: [{path: "layer.toml", contents: $contents}]}}}}' \
+            | gh api graphql --input - > commit.json
+          OID="$(jq -r '.data.createCommitOnBranch.commit.oid' commit.json)"
+          test -n "$OID" && test "$OID" != null || { cat commit.json; exit 1; }
+          VERIFIED="$(gh api "repos/$GITHUB_REPOSITORY/commits/$OID" --jq '.commit.verification.verified')"
+          test "$VERIFIED" = true || {
+            echo "::error::the proposal commit $OID is not signed (verified=$VERIFIED); a ruleset requiring signatures would refuse it"
+            exit 1
+          }
+
+          # The backticks are Markdown for the pull request body, not expansions.
+          # shellcheck disable=SC2016
+          PR_URL="$(gh pr create --repo "$GITHUB_REPOSITORY" --base main --head "$BRANCH" \
+            --title "Pins moved upstream" \
+            --body "$(printf 'The scanner found upstream movement.\n\n```\n%s\n```\n\nNo person chose these versions. **Merging this deposits the layer**: `deposit-on-merge.yml` derives the next layer id and counter from the published record and dispatches the deposit. A layer id once spent cannot be reused.\n\nAuto-merge is armed only when an active ruleset requires `check` on main; otherwise this waits for a human (see the run summary).' "$BODY")")"
+          NEW="${PR_URL##*/}"
+          echo "::notice::proposed #$NEW"
+
+          # Older proposals are superseded: this scan was taken against the
+          # current main and re-finds every move they carried that is still
+          # unmerged. An unreviewed queue of near-identical PRs is how a gate
+          # stops being looked at.
+          while IFS="$(printf '\t')" read -r NUM _; do
+            [ -n "$NUM" ] || continue
+            gh pr close "$NUM" --repo "$GITHUB_REPOSITORY" --delete-branch \
+              --comment "Superseded by #$NEW, a newer scan." || true
+          done <<< "$EXISTING"
+
+          # Armed at the commit made above, and nothing later.
+          tools/arm-auto-merge.sh "$NEW" "$OID"
