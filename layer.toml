@@ -170,11 +170,11 @@ version = "v0.36.1"
 "aarch64-unknown-linux-gnu" = "ordeal-%R-aarch64-unknown-linux-musl.tar.gz"
 [[tool]]
 name    = "loom"
-version = "v1.5.2"
+version = "v1.5.3"
 
 [[tool]]
 name    = "meld"
-version = "v0.68.0"
+version = "v0.69.0"
 
 # Ingested from the STATIC MUSL asset. The key is still the gnu triple because
 # `host_platform()` resolves every Linux host to `{arch}-unknown-linux-gnu`; a
