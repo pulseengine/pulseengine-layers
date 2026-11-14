@@ -125,7 +125,7 @@ registry = "oci://ghcr.io/pulseengine/layers"
 
 [[tool]]
 name    = "rivet"
-version = "v0.41.1"
+version = "v0.42.2"
 
 [[tool]]
 name    = "spar"
@@ -191,11 +191,11 @@ version = "v0.68.0"
 # alias (this repo#34, varve#258).
 [[tool]]
 name    = "kiln"
-version = "v0.7.2"
+version = "v0.7.3"
 
 [[tool]]
 name    = "kilnd"
-version = "v0.7.2"
+version = "v0.7.3"
 repo    = "pulseengine/kiln"
 asset   = "kiln-%R-%T.tar.gz"
 
@@ -275,7 +275,7 @@ asset   = "with-device-%V-%T.tar.gz"
 [[tool]]
 name    = "wsc"
 repo    = "pulseengine/sigil"
-version = "v0.12.0"
+version = "v0.12.1"
 layout  = "raw-per-platform"
 # sigil names these `wsc-<os>-<arch>` -- OS first. Neither %T
 # (aarch64-apple-darwin) nor %U (aarch64-macos) produces that order, so the
@@ -300,7 +300,7 @@ layout  = "raw-per-platform"
 # platform's payload as unbuilt and deposits the three that exist.
 [[tool]]
 name    = "warte"
-version = "v1.6.25"
+version = "v1.6.26"
 layout  = "raw-per-platform"
 platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
 [tool.asset-for]
@@ -315,7 +315,7 @@ platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknow
 [[vsix]]
 name    = "rivet-sdlc"
 repo    = "pulseengine/rivet"
-version = "v0.41.1"
+version = "v0.42.2"
 asset   = "rivet-sdlc-%V.vsix"
 
 [[vsix]]
