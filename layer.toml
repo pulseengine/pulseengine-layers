@@ -170,7 +170,7 @@ version = "v0.37.0"
 "aarch64-unknown-linux-gnu" = "ordeal-%R-aarch64-unknown-linux-musl.tar.gz"
 [[tool]]
 name    = "loom"
-version = "v1.5.3"
+version = "v1.5.4"
 
 [[tool]]
 name    = "meld"
