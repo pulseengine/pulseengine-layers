@@ -186,16 +186,29 @@ version = "v0.69.0"
 "aarch64-unknown-linux-gnu" = "meld-%R-aarch64-unknown-linux-musl.tar.gz"
 
 # plant proves CI checks can fail: it plants a fault per check and expects red.
-# Not on crates.io by design; this layer is its distribution channel. v0.1.0
+# v0.2.0 adds `plant guard`, the org's shared self-hosted fork-guard checker.
+# Not on crates.io by design; this layer is its distribution channel. v0.2.0
 # is a GitHub prerelease. Its SHA256SUMS.txt is cosign-signed by
-# release.yml@refs/tags/v0.1.0. Linux ships only the static musl archives,
+# release.yml@refs/tags/v0.2.0. Linux ships only the static musl archives,
 # keyed by the gnu triple for the same reason as meld above (varve#175).
 [[tool]]
 name    = "plant"
-version = "v0.1.0"
+version = "v0.2.0"
 [tool.asset-for]
 "x86_64-unknown-linux-gnu"  = "plant-%R-x86_64-unknown-linux-musl.tar.gz"
 "aarch64-unknown-linux-gnu" = "plant-%R-aarch64-unknown-linux-musl.tar.gz"
+
+# sieve is the shared CI path classifier: heavy PR jobs run only when their
+# inputs change; plant holds its false-skip controls. Not on crates.io; this
+# layer is its distribution channel. v0.1.0 is a GitHub prerelease. Its
+# SHA256SUMS.txt is cosign-signed by release.yml@refs/tags/v0.1.0. Linux takes
+# the static musl archives, keyed by the gnu triple like meld (varve#175).
+[[tool]]
+name    = "sieve"
+version = "v0.1.0"
+[tool.asset-for]
+"x86_64-unknown-linux-gnu"  = "sieve-%R-x86_64-unknown-linux-musl.tar.gz"
+"aarch64-unknown-linux-gnu" = "sieve-%R-aarch64-unknown-linux-musl.tar.gz"
 # kiln v0.6.0 renamed its CLI from `kilnd` to `kiln` (kiln#524), and the
 # archive carries BOTH binaries. `kiln` is the tool; `kilnd` is the deprecated
 # alias, kept dispatchable for one layer cycle so jess (jess#287) keeps
