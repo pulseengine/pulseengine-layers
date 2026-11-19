@@ -200,12 +200,12 @@ version = "v0.2.0"
 
 # sieve is the shared CI path classifier: heavy PR jobs run only when their
 # inputs change; plant holds its false-skip controls. Not on crates.io; this
-# layer is its distribution channel. v0.2.0 is a GitHub prerelease. Its
-# SHA256SUMS.txt is cosign-signed by release.yml@refs/tags/v0.2.0. Linux takes
+# layer is its distribution channel. v0.2.1 is a GitHub prerelease. Its
+# SHA256SUMS.txt is cosign-signed by release.yml@refs/tags/v0.2.1. Linux takes
 # the static musl archives, keyed by the gnu triple like meld (varve#175).
 [[tool]]
 name    = "sieve"
-version = "v0.2.0"
+version = "v0.2.1"
 [tool.asset-for]
 "x86_64-unknown-linux-gnu"  = "sieve-%R-x86_64-unknown-linux-musl.tar.gz"
 "aarch64-unknown-linux-gnu" = "sieve-%R-aarch64-unknown-linux-musl.tar.gz"
