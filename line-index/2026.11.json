@@ -1,7 +1,7 @@
 {
   "line": "2026.11",
-  "counter": 26,
-  "issued-at": "2026-11-18T20:50:23Z",
+  "counter": 27,
+  "issued-at": "2026-11-19T00:23:41Z",
   "layers": [
     {
       "layer": "2026.11.0",
@@ -158,6 +158,12 @@
       "digest": "sha256:cda008bbe5b5747ef55667eb65131753061a97abffad966c359b166fbd22eff2",
       "channel": "rolling",
       "counter": 26
+    },
+    {
+      "layer": "2026.11.26",
+      "digest": "sha256:d64989c9275e5f563988b4d1c94e9680a1af8e8b589dcda5b8818d3a0e74b157",
+      "channel": "rolling",
+      "counter": 27
     }
   ]
 }
