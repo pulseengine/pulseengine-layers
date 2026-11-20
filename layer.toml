@@ -340,7 +340,7 @@ platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknow
 [[vsix]]
 name    = "rivet-sdlc"
 repo    = "pulseengine/rivet"
-version = "v0.42.2"
+version = "v0.43.0"
 asset   = "rivet-sdlc-%V.vsix"
 
 [[vsix]]
