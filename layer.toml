@@ -292,8 +292,8 @@ version = "v0.47.0"
 [[tool]]
 name    = "with-device"
 repo    = "pulseengine/jess"
-version = "0.2.2"
-release = "v0.7.2"
+version = "0.5.0"
+release = "v0.7.3"
 asset   = "with-device-%V-%T.tar.gz"
 
 # wsc ships as raw per-platform binaries from sigil, not a tarball.
