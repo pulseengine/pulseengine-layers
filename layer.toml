@@ -300,7 +300,7 @@ asset   = "with-device-%V-%T.tar.gz"
 [[tool]]
 name    = "wsc"
 repo    = "pulseengine/sigil"
-version = "v0.12.1"
+version = "v0.12.2"
 layout  = "raw-per-platform"
 # sigil names these `wsc-<os>-<arch>` -- OS first. Neither %T
 # (aarch64-apple-darwin) nor %U (aarch64-macos) produces that order, so the
@@ -308,9 +308,11 @@ layout  = "raw-per-platform"
 # ever worked here because it carried a hardcoded `case` for wsc; naming the
 # files removes that special case and makes the manifest the only place the
 # layer's contents are defined.
+# sigil publishes no x86_64-apple-darwin build since v0.12.2 (the org dropped
+# Intel macOS), so the platform list names the three that exist.
+platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
 [tool.asset-for]
 "aarch64-apple-darwin"      = "wsc-macos-aarch64"
-"x86_64-apple-darwin"       = "wsc-macos-x86_64"
 "aarch64-unknown-linux-gnu" = "wsc-linux-aarch64"
 "x86_64-unknown-linux-gnu"  = "wsc-linux-x86_64"
 
