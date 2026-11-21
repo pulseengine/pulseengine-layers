@@ -35,7 +35,10 @@ have, signed into the layer as though it did. So:
 Fail-loud by design. This feeds an AUTONOMOUS deposit, so "I could not ask" must
 never look like "nothing moved" — a scanner that silently reported no movement
 would freeze the realm while appearing healthy. Any repository that cannot be
-queried is an error, and the caller stops.
+queried is an error, and the caller stops. One answer is not a failure: a
+repository that has published ONLY prereleases (GitHub's "latest" then 404s)
+goes on the needs-a-person list with its newest prerelease, and the rest of
+the scan proceeds.
 """
 import json
 import os
@@ -56,13 +59,50 @@ from pins import asked_tag, repo_of, sections, tracks_tag  # noqa: E402
 MANIFEST = "layer.toml"
 
 
+class PrereleaseOnly(Exception):
+    """The repository answered, and has published only prereleases.
+
+    GitHub's "latest release" ignores prereleases, so such a repo answers 404
+    (plant and sieve, 2026-11-20). That is not "I could not ask" — it is "there
+    is no stable release" — and failing the whole scan for it froze proposals
+    for EVERY payload. The scanner does not auto-propose a prerelease either;
+    it hands the newest one to a person.
+    """
+
+    def __init__(self, repo: str, newest: str):
+        super().__init__(f"{repo}: only prereleases, newest {newest}")
+        self.repo = repo
+        self.newest = newest
+
+
+def newest_if_prerelease_only(releases: list[dict]) -> "str | None":
+    """The newest tag when every published (non-draft) release is a
+    prerelease, else None — a stable release next to a 404 on "latest", or no
+    release at all, stays a real error. `releases` is newest first, as
+    `gh release list` returns it."""
+    published = [r for r in releases if not r.get("isDraft")]
+    if not published or any(not r.get("isPrerelease") for r in published):
+        return None
+    return published[0]["tagName"]
+
+
 def latest_release(repo: str) -> str:
-    """The repository's latest release tag, or raise."""
+    """The repository's latest release tag; raise PrereleaseOnly when it has
+    published only prereleases, RuntimeError for anything else."""
     out = subprocess.run(
         ["gh", "release", "view", "--repo", repo, "--json", "tagName"],
         capture_output=True, text=True,
     )
     if out.returncode != 0:
+        listing = subprocess.run(
+            ["gh", "release", "list", "--repo", repo, "--limit", "30",
+             "--json", "tagName,isPrerelease,isDraft"],
+            capture_output=True, text=True,
+        )
+        if listing.returncode == 0:
+            newest = newest_if_prerelease_only(json.loads(listing.stdout or "[]"))
+            if newest:
+                raise PrereleaseOnly(repo, newest)
         raise RuntimeError(f"{repo}: {out.stderr.strip()[:160]}")
     tag = json.loads(out.stdout)["tagName"]
     if not tag:
@@ -84,7 +124,17 @@ def plan(manifest: dict, latest: "callable") -> tuple[list[tuple], list[str]]:
             repo = repo_of(entry)
             release = entry.get("release")
             asked = asked_tag(entry)
-            newest = latest(repo)
+            try:
+                newest = latest(repo)
+            except PrereleaseOnly as only:
+                if only.newest != asked:
+                    needs_a_person.append(
+                        f"{section} '{name}' asks for {asked}; {repo} has published "
+                        f"only prereleases, the newest {only.newest}. The scanner "
+                        f"does not propose a prerelease — a person decides whether "
+                        f"the layer moves to it."
+                    )
+                continue
             if newest == asked:
                 continue
             if release is not None and not tracks_tag(entry):
@@ -147,11 +197,15 @@ def main(argv: list[str]) -> int:
         if repo not in cache:
             try:
                 cache[repo] = latest_release(repo)
+            except PrereleaseOnly as only:
+                cache[repo] = only  # an answer, not a failure: plan() routes it
             except Exception as e:  # noqa: BLE001 — every failure is the same answer: stop
                 failures.append(str(e))
                 cache[repo] = None
         if cache[repo] is None:
             raise RuntimeError(f"{repo}: already failed")
+        if isinstance(cache[repo], PrereleaseOnly):
+            raise cache[repo]
         return cache[repo]
 
     updates, needs_a_person = [], []
