@@ -143,9 +143,14 @@ version = "v0.90.0"
 [tool.asset-for]
 "x86_64-unknown-linux-gnu"  = "synth-%R-x86_64-unknown-linux-musl.tar.gz"
 "aarch64-unknown-linux-gnu" = "synth-%R-aarch64-unknown-linux-musl.tar.gz"
+# witness v0.46.2 carries wasmtime 50.0.3 (RUSTSEC-2026-0587). v0.46.1 was
+# tagged but never published: its release run failed before the release
+# existed. No x86_64-apple-darwin build since v0.46.2, so the platform list
+# names the three that exist; Linux keeps the default gnu archives.
 [[tool]]
 name    = "witness"
-version = "v0.46.0"
+version = "v0.46.2"
+platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
 
 [[tool]]
 name    = "ordeal"
