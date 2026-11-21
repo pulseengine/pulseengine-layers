@@ -248,5 +248,92 @@ class TheRealManifest(unittest.TestCase):
         )
 
 
+def prerelease_only(newest, **tags):
+    """A `latest` where pulseengine/plant has published only prereleases."""
+    def latest(repo):
+        if repo == "pulseengine/plant":
+            raise scan_pins.PrereleaseOnly(repo, newest)
+        if repo not in tags:
+            raise AssertionError(f"scanner asked about an unexpected repo: {repo}")
+        return tags[repo]
+    return latest
+
+
+CURRENT = {
+    "pulseengine/rivet": "v0.37.0", "pulseengine/spar": "v0.37.0",
+    "pulseengine/jess": "v0.7.2", "pulseengine/varve": "v0.36.0",
+}
+PLANT = '\n[[tool]]\nname    = "plant"\nversion = "v0.2.0"\n'
+
+
+class PrereleaseOnlyRepos(unittest.TestCase):
+    """GitHub's "latest release" ignores prereleases, so a repo that has
+    published ONLY prereleases (plant, sieve) answers 404. Before this, that
+    404 failed the whole scan on every cron tick from 2026-11-20 16:30Z, and
+    the realm got no proposals for ANY payload. It is not "I could not ask":
+    the repo answered, it has no stable release. A person decides."""
+
+    def test_a_prerelease_only_repo_that_moved_asks_a_person_and_changes_nothing(self):
+        m = tomllib.loads(MANIFEST + PLANT)
+        updates, notes = scan_pins.plan(m, prerelease_only("v0.3.0", **CURRENT))
+        self.assertEqual([u for u in updates if u[1] == "plant"], [])
+        self.assertEqual(len(notes), 1)
+        self.assertIn("plant", notes[0])
+        self.assertIn("v0.3.0", notes[0])
+        self.assertIn("v0.2.0", notes[0])
+        self.assertIn("prerelease", notes[0])
+
+    def test_a_prerelease_only_repo_at_its_newest_says_nothing(self):
+        m = tomllib.loads(MANIFEST + PLANT)
+        updates, notes = scan_pins.plan(m, prerelease_only("v0.2.0", **CURRENT))
+        self.assertEqual((updates, notes), ([], []))
+
+    def test_the_other_payloads_are_still_scanned(self):
+        m = tomllib.loads(MANIFEST + PLANT)
+        moved = dict(CURRENT, **{"pulseengine/rivet": "v0.38.0"})
+        updates, _ = scan_pins.plan(m, prerelease_only("v0.3.0", **moved))
+        self.assertIn(("tool", "rivet", "version", "v0.37.0", "v0.38.0"), updates)
+
+    def test_any_other_failure_still_stops_the_scan(self):
+        def broken(repo):
+            raise RuntimeError(f"{repo}: HTTP 502")
+        with self.assertRaises(RuntimeError):
+            scan_pins.plan(manifest(), broken)
+
+
+class ClassifyingA404(unittest.TestCase):
+    def rel(self, tag, pre, draft=False):
+        return {"tagName": tag, "isPrerelease": pre, "isDraft": draft}
+
+    def test_only_prereleases_gives_the_newest_one(self):
+        self.assertEqual(
+            scan_pins.newest_if_prerelease_only(
+                [self.rel("v0.3.0", True), self.rel("v0.2.0", True)]
+            ),
+            "v0.3.0",
+        )
+
+    def test_drafts_do_not_count(self):
+        self.assertEqual(
+            scan_pins.newest_if_prerelease_only(
+                [self.rel("v0.4.0", True, draft=True), self.rel("v0.3.0", True)]
+            ),
+            "v0.3.0",
+        )
+
+    def test_a_stable_release_present_means_the_404_is_a_real_error(self):
+        self.assertIsNone(
+            scan_pins.newest_if_prerelease_only(
+                [self.rel("v0.3.0", True), self.rel("v0.2.0", False)]
+            )
+        )
+
+    def test_no_releases_at_all_is_a_real_error(self):
+        self.assertIsNone(scan_pins.newest_if_prerelease_only([]))
+        self.assertIsNone(
+            scan_pins.newest_if_prerelease_only([self.rel("v0.1.0", True, draft=True)])
+        )
+
+
 if __name__ == "__main__":
     unittest.main()
