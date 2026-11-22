@@ -360,7 +360,7 @@ platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknow
 # platform's payload as unbuilt and deposits the three that exist.
 [[tool]]
 name    = "warte"
-version = "v1.6.38"
+version = "v1.6.42"
 layout  = "raw-per-platform"
 platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
 [tool.asset-for]
