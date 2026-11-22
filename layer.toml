@@ -233,14 +233,14 @@ platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknow
 
 # sieve is the shared CI path classifier: heavy PR jobs run only when their
 # inputs change; plant holds its false-skip controls. Not on crates.io; this
-# layer is its distribution channel. v0.4.1 is a GitHub prerelease. Its
-# SHA256SUMS.txt is cosign-signed by release.yml@refs/tags/v0.4.1, and the
-# signed tag points at 9d68a76. Linux takes the static musl archives, keyed by
+# layer is its distribution channel. v0.4.2 is a GitHub prerelease. Its
+# SHA256SUMS.txt is cosign-signed by release.yml@refs/tags/v0.4.2, and the
+# signed tag points at 89ab07b. Linux takes the static musl archives, keyed by
 # the gnu triple like meld (varve#175). No x86_64-apple-darwin build, so the
 # platform list names the three that exist.
 [[tool]]
 name    = "sieve"
-version = "v0.4.1"
+version = "v0.4.2"
 platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
 [tool.asset-for]
 "x86_64-unknown-linux-gnu"  = "sieve-%R-x86_64-unknown-linux-musl.tar.gz"
