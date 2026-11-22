@@ -123,9 +123,13 @@ registry = "oci://ghcr.io/pulseengine/layers"
 # from this repository carries what the realm already carries rather than a
 # quietly older toolchain.
 
+# rivet v0.43.3: v0.43.1 and v0.43.2 were tagged but never published. No
+# x86_64-apple-darwin build from v0.43.3 on, so the platform list names the
+# three that exist; Linux keeps the default gnu archives.
 [[tool]]
 name    = "rivet"
-version = "v0.43.0"
+version = "v0.43.3"
+platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
 
 [[tool]]
 name    = "spar"
@@ -365,7 +369,7 @@ platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknow
 [[vsix]]
 name    = "rivet-sdlc"
 repo    = "pulseengine/rivet"
-version = "v0.43.0"
+version = "v0.43.3"
 asset   = "rivet-sdlc-%V.vsix"
 
 [[vsix]]
