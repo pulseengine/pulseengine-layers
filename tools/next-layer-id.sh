@@ -57,9 +57,28 @@ else
 fi
 AUTH="Authorization: Bearer $TOKEN"
 
-TAGS="$(curl -fsS -H "$AUTH" "https://$HOST/v2/$REPO/tags/list" \
-        | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin).get("tags") or []))' 2>/dev/null)" \
-  || die "could not list tags of $REF — refusing to guess a layer id"
+# Every page, not the first: a registry returns at most one page of tags per
+# request (ghcr: 100) and names the rest only in its `Link: rel="next"` header.
+# Reading page 1 alone missed 2026.11.40 once the realm passed 100 tags, so
+# this proposed 2026.11.40 a second time and publish-check refused the deposit.
+TAGS=""; URL="https://$HOST/v2/$REPO/tags/list"; PAGES=0
+HDR="$(mktemp)"; trap 'rm -f "$HDR"' EXIT
+while [ -n "$URL" ]; do
+  PAGES=$((PAGES + 1))
+  [ "$PAGES" -le 1000 ] || die "tag listing of $REF did not end after 1000 pages — refusing to guess a layer id"
+  PAGE="$(curl -fsS -D "$HDR" -H "$AUTH" "$URL" \
+          | python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin).get("tags") or []))' 2>/dev/null)" \
+    || die "could not list tags of $REF (page $PAGES) — refusing to guess a layer id"
+  [ -n "$PAGE" ] && TAGS="$TAGS${TAGS:+$'\n'}$PAGE"
+  NEXT="$(tr -d '\r' < "$HDR" | sed -n 's/^[Ll][Ii][Nn][Kk]: *<\([^>]*\)>; *rel="next".*/\1/p' | head -n 1)"
+  case "$NEXT" in
+    "")                URL="" ;;
+    /*)                URL="https://$HOST$NEXT" ;;
+    "https://$HOST/"*) URL="$NEXT" ;;
+    *)                 die "the next-page link of $REF leaves $HOST ($NEXT) — refusing to follow it" ;;
+  esac
+done
+note "$PAGES page(s) of tags read"
 note "$(printf '%s\n' "$TAGS" | grep -c . || true) tag(s) published on $REF"
 
 # ── the highest layer already on this line ───────────────────────────────────
