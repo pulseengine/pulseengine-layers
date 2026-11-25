@@ -202,16 +202,16 @@ version = "v0.70.0"
 
 # plant proves CI checks can fail: it plants a fault per check and expects red.
 # v0.2.0 added `plant guard`, the org's shared self-hosted fork-guard checker;
-# v0.4.0 carries `trusted_workflows`. Not on crates.io by design; this layer
-# is its distribution channel. v0.4.0 is a GitHub prerelease. Its
-# SHA256SUMS.txt is cosign-signed by release.yml@refs/tags/v0.4.0, and the
-# signed tag points at c043e2c. The tag was moved once, with owner approval,
-# from 6bdcfbd, whose release run failed and published nothing. Linux ships
+# v0.4.0 carried `trusted_workflows`; v0.5.0 adds `.planted` names (plant#38)
+# and the lockfile pack (plant#40). Not on crates.io by design; this layer
+# is its distribution channel. v0.5.0 is a GitHub prerelease. Its
+# SHA256SUMS.txt is cosign-signed by release.yml@refs/tags/v0.5.0, and the
+# signed tag points at 4542688. Linux ships
 # only the static musl archives, keyed by the gnu triple for the same reason
 # as meld above (varve#175).
 [[tool]]
 name    = "plant"
-version = "v0.4.0"
+version = "v0.5.0"
 platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
 [tool.asset-for]
 "x86_64-unknown-linux-gnu"  = "plant-%R-x86_64-unknown-linux-musl.tar.gz"
