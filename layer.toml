@@ -217,15 +217,15 @@ platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknow
 "x86_64-unknown-linux-gnu"  = "plant-%R-x86_64-unknown-linux-musl.tar.gz"
 "aarch64-unknown-linux-gnu" = "plant-%R-aarch64-unknown-linux-musl.tar.gz"
 
-# jig, first included in this layer at v0.1.0. v0.1.5 is a GitHub prerelease.
-# Its SHA256SUMS.txt is cosign-signed by release.yml@refs/tags/v0.1.5, and the
-# signed tag points at 793acae. It publishes aarch64-apple-darwin and static
+# jig, first included in this layer at v0.1.0. v0.1.6 is a GitHub prerelease.
+# Its SHA256SUMS.txt is cosign-signed by release.yml@refs/tags/v0.1.6, and the
+# signed tag points at 4c7181a. It publishes aarch64-apple-darwin and static
 # musl Linux archives, keyed by the gnu triple as for plant (varve#175).
 # There is no x86_64-apple-darwin build, so the platform list names the three
 # that exist (plant likewise).
 [[tool]]
 name    = "jig"
-version = "v0.1.5"
+version = "v0.1.6"
 platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
 [tool.asset-for]
 "x86_64-unknown-linux-gnu"  = "jig-%R-x86_64-unknown-linux-musl.tar.gz"
