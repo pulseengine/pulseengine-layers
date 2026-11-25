@@ -66,7 +66,7 @@ jobs:
         run: echo "repo-name=${GITHUB_REPOSITORY#*/}" >> "$GITHUB_OUTPUT"
 
       - name: Prove the App token can be minted (nothing is published yet)
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           # `app-id`, not `client-id`: see scan-and-propose.yml.
           app-id: ${{ secrets.ACTIONS_BOT_APP_ID }}
@@ -469,7 +469,7 @@ jobs:
       # result back as a consumer does. As in wasm-layers.
       - name: Mint the App token for the index proposal
         id: app
-        uses: actions/create-github-app-token@64ab729a6294000f5aa4a4bc0b73d1f32bc45510 # v3.3.0
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
         with:
           # `app-id`, not `client-id`: see scan-and-propose.yml.
           app-id: ${{ secrets.ACTIONS_BOT_APP_ID }}
