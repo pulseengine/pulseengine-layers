@@ -175,3 +175,39 @@ jobs:
             fi
           done
           exit "$FAILED"
+
+  # covalent composes this realm. Its scanner reads THIS realm's signed index,
+  # so it is told only after the index above is published and read back
+  # verified; a nudge on the deposit would race the index (covalent-layers#130).
+  # It sends repository_dispatch `upstream-released`, the trigger covalent's
+  # scan-and-propose already listens for. The org App (ACTIONS_BOT) holds no
+  # `actions` permission, so workflow_dispatch is not available to it; the
+  # token is scoped to covalent-layers alone. The scanner derives everything from signed
+  # indexes, so an extra nudge (the daily run) proposes nothing new. A separate
+  # job: a failed nudge shows red without marking the publish failed; the
+  # scanner's hourly cron is the backstop.
+  notify-covalent:
+    needs: publish
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions: {}
+    steps:
+      - name: Mint an App token scoped to covalent-layers
+        id: app
+        uses: actions/create-github-app-token@f418cff399f7aef4c2f0ad47e25ca7a6abbdd6fc # v3.4.0
+        with:
+          # `app-id`, not `client-id`: see scan-and-propose.yml.
+          app-id: ${{ secrets.ACTIONS_BOT_APP_ID }}
+          private-key: ${{ secrets.ACTIONS_BOT_PRIVATE_KEY }}
+          owner: ${{ github.repository_owner }}
+          repositories: covalent-layers
+          # repository_dispatch requires contents: write on the target.
+          permission-contents: write
+      - name: Start covalent's scan
+        env:
+          GH_TOKEN: ${{ steps.app.outputs.token }}
+        run: |
+          set -euo pipefail
+          gh api "repos/$GITHUB_REPOSITORY_OWNER/covalent-layers/dispatches" \
+            -f event_type=upstream-released -f "client_payload[realm]=$GITHUB_REPOSITORY"
+          echo "::notice::asked covalent-layers to rescan after this realm's index was published"
