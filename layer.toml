@@ -168,7 +168,7 @@ name    = "ordeal"
 # every consumer a prover that can certify a false result.
 # No x86_64-apple-darwin build from v0.38.0 on, so the platform list names
 # the three that exist.
-version = "v0.38.0"
+version = "v0.38.1"
 platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
 
 # loom v1.4.1 publishes no aarch64-unknown-linux-gnu build. The assembler
@@ -189,7 +189,7 @@ version = "v1.5.4"
 
 [[tool]]
 name    = "meld"
-version = "v0.71.0"
+version = "v0.72.0"
 
 # Ingested from the STATIC MUSL asset. The key is still the gnu triple because
 # `host_platform()` resolves every Linux host to `{arch}-unknown-linux-gnu`; a
@@ -335,7 +335,7 @@ asset   = "with-device-%V-%T.tar.gz"
 [[tool]]
 name    = "wsc"
 repo    = "pulseengine/sigil"
-version = "v0.12.2"
+version = "v0.13.0"
 layout  = "raw-per-platform"
 # sigil names these `wsc-<os>-<arch>` -- OS first. Neither %T
 # (aarch64-apple-darwin) nor %U (aarch64-macos) produces that order, so the
@@ -362,7 +362,7 @@ platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknow
 # platform's payload as unbuilt and deposits the three that exist.
 [[tool]]
 name    = "warte"
-version = "v1.6.53"
+version = "v1.6.56"
 layout  = "raw-per-platform"
 platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
 [tool.asset-for]
