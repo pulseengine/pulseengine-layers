@@ -254,9 +254,11 @@ platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknow
 # (kiln#524) is gone, so its entry is dropped (this repo#34, varve#258).
 # v0.9.0 runs wasip2 components that import wasi:cli/exit@0.2.12, which
 # Rust 1.100.0 emits; v0.7.x and v0.8.0 refuse them. No Intel mac archive.
+# v0.9.1 (signed tag at 66b36c5) starts fused modules in under 0.5 s instead
+# of seconds and adds `--dir HOST::GUEST`; no breaking change from v0.9.0.
 [[tool]]
 name      = "kiln"
-version   = "v0.9.0"
+version   = "v0.9.1"
 platforms = ["aarch64-apple-darwin", "aarch64-unknown-linux-gnu", "x86_64-unknown-linux-gnu"]
 
 # The assembler rides in the layer like any other tool, so the NEXT deposit
